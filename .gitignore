@@ -1,0 +1,11 @@
+./.venv
+test_output
+
+output/**/*.pdf
+output/**/*.png
+output/**/*.jpeg
+output/**/*.jp2
+output/**/*.webp
+output/**/*.gif
+output/**/*.bmp
+output/**/*.jpg
