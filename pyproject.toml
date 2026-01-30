@@ -1,7 +1,12 @@
 [project]
 name = "pdf-test"
 version = "0.1.0"
-description = "Add your description here"
+description = "PDF转码和知识图谱系统"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "neo4j>=5.0.0",
+    "chromadb>=0.4.0",
+    "langextract>=0.1.0",
+    "python-dotenv>=1.0.0",
+]

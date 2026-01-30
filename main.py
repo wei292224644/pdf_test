@@ -274,4 +274,4 @@ if __name__ == '__main__':
     # parse_doc(doc_path_list, output_dir, backend="pipeline")  # more general.
     # parse_doc(doc_path_list, output_dir, backend="vlm-auto-engine")  # high accuracy via local computing power.
     parse_doc(doc_path_list, output_dir, backend="vlm-http-client", server_url="http://192.168.66.234:30000")  # high accuracy via remote computing power(client suitable for openai-compatible servers).
-    # parse_doc(doc_path_list, output_dir, backend="hybrid-http-client", server_url="http://127.0.0.1:30000")  # high accuracy but requires a little local computing power(client suitable for openai-compatible servers).
+    # parse_doc(doc_path_list, output_dir, backend="hybrid-http-client", server_url="http://192.168.66.234:30000")  # high accuracy but requires a little local computing power(client suitable for openai-compatible servers).

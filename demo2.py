@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import sys
 import textwrap
+import uuid
 
 import dotenv
 import langextract as lx
@@ -18,8 +19,9 @@ from langextract.providers.openai import OpenAILanguageModel
 dotenv.load_dotenv(override=True)
 
 # Qwen API 配置
-DEFAULT_MODEL = "qwen3-max-preview"
+DEFAULT_MODEL = "qwen3-max-2026-01-23"
 # DEFAULT_MODEL = "qwen-plus-2025-12-01"
+# DEFAULT_MODEL = "deepseek-v3.2"
 DEFAULT_API_URL = os.environ.get(
     "QWEN_API_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
@@ -319,97 +321,148 @@ def extract_document_structure(
 
     prompt = textwrap.dedent(
         """\
-        提取文档中食品添加剂的允许使用品种、使用范围1)以及最大使用量或残留量：
-        1. 食品添加剂名称（中文名、英文名）
-        2. 使用范围（适用的食品类别）
-        3. 最大使用量或残留量
-        4. 功能类别（如防腐剂、着色剂等）+
-        5. INS号、CNS号等编码
-        
-        要求：
-        - 提取文档中的具体数据
-        - 保持数据的准确性
-        
-        使用范围的结构是table结构，需要从<td>结构中提取完整的食品分类号、食品名称、最大使用量、备注信息。
-        每个食品添加剂至少能提取到1条使用范围信息。
-        整块内容都会包在<td></td>结构中，需要从<td></td>结构中提取完整的数据。
-        """
-    )
+你是一名信息抽取引擎，负责从食品添加剂法规文本（如 GB 2760）中进行高保真信息抽取。
+你的输出将被 langextract 直接解析，因此必须严格、稳定、逐字对齐原文。
+
+禁止总结、解释、改写、标准化或推断原文内容。
+
+====================
+抽取对象定义
+====================
+
+请抽取以下信息：
+
+【一】食品添加剂基本信息（如文本中存在）
+1. 食品添加剂中文名称
+2. 食品添加剂英文名称
+3. INS 号
+4. CNS 号
+5. 功能类别（按原文列出，不合并、不简化）
+
+【二】使用范围信息（核心抽取内容）
+法规表格中的“每一行”必须生成“一条独立的抽取结果”，包含以下字段：
+
+6. 食品分类号  
+7. 食品名称  
+8. 最大使用量 / 使用原则（原文）  
+9. 备注  
+
+====================
+关键抽取规则（必须严格遵守）
+====================
+
+1. 所有字段均视为【纯文本字符串】，不得进行任何数值解析  
+2. 不得对小数进行截断、补零、四舍五入或格式化  
+   - 原文为 “0.25” 时，必须完整提取为 “0.25”
+   - 严禁输出 “0.” 或 “0”
+3. “—” 是合法的食品分类号，表示泛用范围，必须原样提取  
+4. 食品名称字段必须包含括号内的全部文字  
+   - 包括所有“除外”“不包括”“××除外”等内容  
+   - 不得省略、拆分或总结  
+5. “按生产需要适量使用”等非数值表达，必须作为【最大使用量 / 使用原则】完整提取  
+6. 备注字段必须完整提取，如：
+   - “以即饮状态计”
+   - “相应的固体饮料按稀释倍数增加使用量”
+   - “以对羟基苯甲酸计”
+7. 表格中的竖线符号 “|”、标点或中文字符，不得作为截断依据  
+8. 不得因为后续存在备注字段而截断“最大使用量”内容  
+9. 不得合并相邻表格行  
+10. 表格中的每一行 = 一条抽取结果  
+
+====================
+边界与对齐要求（langextract 专用）
+====================
+
+- 不得在 “|”、标点符号或中文字符处提前终止抽取  
+- 不得推断缺失单位或含义  
+- 不得跨行抽取  
+- extraction_text 必须与原文逐字一致  
+"""
+    ).strip()
+
+    session_id = str(uuid.uuid4())
 
     examples = [
         lx.data.ExampleData(
-            text="""#$\mathbf{L}(+)$ -酒石酸， $dl$ -酒石酸
-#$\mathbf{L}(+)$ -tartaric acid, $dl$ -tartaric acid
+            text=textwrap.dedent(
+                """\
+## L-苹果酸  
+L-苹果酸（L-malic acid）  
+**CNS号**：01.104  
+**INS号**：—  
+**功能**：酸度调节剂
 
-CNS号 01.111，01.313
-
-INS号 334，一
-
-功能 酸度调节剂  
-
-<table><tr><td>食品分类号</td><td>食品名称</td><td>最大使用量</td><td>备注</td></tr><tr><td>04.02.02.03</td><td>腌渍的蔬菜</td><td>3.0g/kg</td><td>以酒石酸计</td></tr><tr><td>05.02</td><td>糖果</td><td>30g/kg</td><td>以酒石酸计</td></tr><tr><td>06.03.02.05</td><td>油炸面制品</td><td>10.0g/kg</td><td>以酒石酸计</td></tr><tr><td>06.05.02.01</td><td>粉丝、粉条</td><td>2.0g/kg</td><td>以酒石酸计</td></tr><tr><td>06.11</td><td>面糊(如用于鱼和禽肉的拖面糊)、裹粉、煎炸粉</td><td>10.0g/kg</td><td>以酒石酸计</td></tr><tr><td>12.10.01</td><td>固体复合调味料</td><td>10.0g/kg</td><td>以酒石酸计</td></tr><tr><td>14.02.03</td><td>果蔬汁(浆)类饮料</td><td>5.0g/kg</td><td>以酒石酸计,以即饮状态计,相应的固体饮料按稀释倍数增加使用量</td></tr><tr><td>14.03.02</td><td>植物蛋白饮料</td><td>5.0g/kg</td><td>以酒石酸计,以即饮状态计,相应的固体饮料按稀释倍数增加使用量</td></tr><tr><td>14.03.03</td><td>复合蛋白饮料</td><td>5.0g/kg</td><td>以酒石酸计,以即饮状态计,相应的固体饮料按稀释倍数增加使用量</td></tr><tr><td>14.04</td><td>碳酸饮料</td><td>5.0g/kg</td><td>以酒石酸计,以即饮状态计,相应的固体饮料按稀释倍数增加使用量</td></tr><tr><td>14.05</td><td>茶、咖啡、植物(类)饮料</td><td>5.0g/kg</td><td>以酒石酸计,以即饮状态计,相应的固体饮料按稀释倍数增加使用量</td></tr><tr><td>14.07</td><td>特殊用途饮料</td><td>5.0g/kg</td><td>以酒石酸计,以即饮状态计,相应的固体饮料按稀释倍数增加使用量</td></tr><tr><td>14.08</td><td>风味饮料</td><td>5.0g/kg</td><td>以酒石酸计,以即饮状态计,相应的固体饮料按稀释倍数增加使用量</td></tr><tr><td>15.03.01</td><td>葡萄酒</td><td>4.0g/L</td><td>以酒石酸计</td></tr></table>""",
+| 食品分类号 | 食品名称 | 最大使用量 | 备注 |
+|---|---|---|---|
+| — | 各类食品（表A.2中编号为1~68的食品类别除外） | 按生产需要适量使用 | — |
+"""
+            ),
             extractions=[
                 lx.data.Extraction(
                     extraction_class="食品添加剂中文名称",
-                    extraction_text="$\mathbf{L}(+)$ -酒石酸， $dl$ -酒石酸",
+                    extraction_text="果胶",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
                     extraction_class="食品添加剂英文名称",
-                    extraction_text="$\mathbf{L}(+)$ -tartaric acid, $dl$ -tartaric acid",
+                    extraction_text="pectins",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
                     extraction_class="CNS号",
-                    extraction_text="CNS号 01.111，01.313",
+                    extraction_text="20.006",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
                     extraction_class="INS号",
-                    extraction_text="INS号 334，一",
+                    extraction_text="440",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
-                    extraction_class="功能", extraction_text="酸度调节剂"
+                    extraction_class="功能",
+                    extraction_text="乳化剂、稳定剂、增稠剂",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
-                    extraction_class="食品分类号",
-                    extraction_text="04.02.02.03",
-                    attributes={"key": "04.02.02.03"},
+                    extraction_class="使用范围",
+                    extraction_text="| — | 各类食品，表A.2中编号为1~68的食品类别除外 | 按生产需要适量使用 | — |",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
-                    extraction_class="食品名称",
-                    extraction_text="腌渍的蔬菜",
-                    attributes={"key": "04.02.02.03"},
+                    extraction_class="使用范围",
+                    extraction_text="| 01.05.01 | 稀奶油 | 1.0 g/kg | — |",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
-                    extraction_class="最大使用量",
-                    extraction_text="3.0g/kg",
-                    attributes={"key": "04.02.02.03"},
+                    extraction_class="使用范围",
+                    extraction_text="| 13.01.02 | 较大婴儿和幼儿配方食品 | 1.0 g/L | 以即食状态计 |",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
                 lx.data.Extraction(
-                    extraction_class="备注",
-                    extraction_text="以酒石酸计",
-                    attributes={"key": "04.02.02.03"},
-                ),
-                lx.data.Extraction(
-                    extraction_class="食品分类号",
-                    extraction_text="05.02",
-                    attributes={"key": "05.02"},
-                ),
-                lx.data.Extraction(
-                    extraction_class="食品名称",
-                    extraction_text="糖果",
-                    attributes={"key": "05.02"},
-                ),
-                lx.data.Extraction(
-                    extraction_class="最大使用量",
-                    extraction_text="30g/kg",
-                    attributes={"key": "05.02"},
-                ),
-                lx.data.Extraction(
-                    extraction_class="备注",
-                    extraction_text="以酒石酸计",
-                    attributes={"key": "05.02"},
+                    extraction_class="使用范围",
+                    extraction_text="| 11.05 | 调味糖浆 | 5.0 | — |",
+                    attributes={
+                        "group_id": "果胶-20.006",
+                    },
                 ),
             ],
-        )
+        ),
     ]
 
     # 分析文档的前部分以获取结构
@@ -421,14 +474,60 @@ INS号 334，一
     try:
         # 使用更保守的配置
         result = lx.extract(
-            text_or_documents=text_preview,
+            text_or_documents="""\
+## L-苹果酸  
+L-苹果酸（L-malic acid）  
+**CNS号**：01.104  
+**INS号**：—  
+**功能**：酸度调节剂
+
+| 食品分类号 | 食品名称 | 最大使用量 | 备注 |
+|---|---|---|---|
+| — | 各类食品（表A.2中编号为1~68的食品类别除外） | 按生产需要适量使用 | — |
+
+## L-苹果酸钠  
+L-苹果酸钠（L-(−)-malic acid disodium salt）  
+**CNS号**：01.315  
+**INS号**：—  
+**功能**：酸度调节剂
+
+| 食品分类号 | 食品名称 | 最大使用量 | 备注 |
+|---|---|---|---|
+| — | 各类食品（表A.2中编号为1~68的食品类别除外） | 按生产需要适量使用 | — |
+
+## α-环状糊精  
+α-环状糊精（alpha-cyclodextrin）  
+**CNS号**：18.011  
+**INS号**：—  
+**功能**：稳定剂、增稠剂
+
+| 食品分类号 | 食品名称 | 最大使用量 | 备注 |
+|---|---|---|---|
+| — | 各类食品（表A.2中编号为1~68的食品类别除外） | 按生产需要适量使用 | — |
+
+## β-阿朴-8'-胡萝卜素醛  
+β-阿朴-8'-胡萝卜素醛（β-apo-8'-carotenal）  
+**CNS号**：08.018  
+**INS号**：—  
+**功能**：着色剂
+
+| 食品分类号 | 食品名称 | 最大使用量 | 备注 |
+|---|---|---|---|
+| 01.02.02 | 风味发酵乳 | 0.015 | 以β-阿朴-8'-胡萝卜素醛计 |
+| 01.06.04 | 再制干酪及干酪制品 | 0.018 | 以β-阿朴-8'-胡萝卜素醛计 |
+| 03.0 | 冷冻饮品（03.04食用冰除外） | 0.020 | 以β-阿朴-8'-胡萝卜素醛计 |
+| 05.02 | 糖果 | 0.015 | 以β-阿朴-8'-胡萝卜素醛计 |
+| 07.0 | 焙烤食品 | 0.015 | 以β-阿朴-8'-胡萝卜素醛计 |
+| 12.10.02 | 半固体复合调味料 | 0.005 | 以β-阿朴-8'-胡萝卜素醛计 |
+| 14.0 | 饮料类［14.01包装饮用水、14.02.01果蔬汁（浆）、14.02.02浓缩果蔬汁（浆）除外］ | 0.010 | 以β-阿朴-8'-胡萝卜素醛计，以即饮状态计；相应的固体饮料按稀释倍数增加使用量 |
+""",
             prompt_description=prompt,
             examples=examples,
             model=model,
             fence_output=True,
             use_schema_constraints=False,
             extraction_passes=3,
-            temperature=0.3,
+            temperature=0.4,
         )
 
         # 验证和清理结果
