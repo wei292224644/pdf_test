@@ -1,6 +1,32 @@
-./.venv
-test_output
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
 
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+*.log
+
+# 环境变量
+.env
+
+# 测试输出
+test_output/
+
+# PDF解析输出（可选，如果不需要可以删除整个output目录）
 output/**/*.pdf
 output/**/*.png
 output/**/*.jpeg
@@ -9,3 +35,12 @@ output/**/*.webp
 output/**/*.gif
 output/**/*.bmp
 output/**/*.jpg
+
+# ChromaDB 向量数据库
+chroma_graphrag/
+
+# LightRAG 索引与图存储（如果使用）
+lightrag_storage/
+
+# 构建进度
+.schema_build_progress

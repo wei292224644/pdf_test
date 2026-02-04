@@ -18,7 +18,7 @@
 | **HAS_FUNCTION** | Chemical → Function | — |
 | **PERMITTED_IN** | Chemical → FoodCategory | `max_usage`, `unit`, `note`, `scope`（范围限定，如「仅限植脂末」）, `category_name`（当前行完整食品名称，便于按条处理） |
 | **PERMITTED_IN_GROUP** | Chemical → FoodCategoryGroup | `max_usage`, `exclude_group`（**整数数组**，如 [1,2,3,4,6,7,…,68]，由 1~4、6~9、11~30 等展开）, `group_rule_description`（原始完整描述） |
-| **CONTAINS** | FoodCategoryGroup → FoodCategory | `exception_no`（表 A.2 例外编号 1～68，仅 TABLE_A2_EXCEPTIONS 时使用） |
+| **CONTAINS** | FoodCategoryGroup → FoodCategory | `exception_no`（表 A.2 例外编号 1～68，仅 FOOD_ADDITIVE_EXCEPTIONS 时使用） |
 
 ## 3. 约束与索引汇总
 
@@ -60,7 +60,7 @@ cypher-shell -u neo4j -p <password> -f neo4j_schema.cypher
 - **AdditiveCode**：CNS号、INS号 各一条，`code_type` 为 `"CNS"` / `"INS"`。
 - **Function**：对应“功能”字段，如 增稠剂、着色剂、抗结剂。
 - **FoodCategory**：先由表 E.1（cache/page_245～254）导入全部食品分类；添加剂“使用范围”中的具体许可再通过 PERMITTED_IN 关联到这些节点。
-- **FoodCategoryGroup**：表 A.2 例外食品类别（cache/page_149、150）→ `TABLE_A2_EXCEPTIONS`，并通过 CONTAINS 关联 68 条例外 FoodCategory。
+- **FoodCategoryGroup**：表 A.2 例外食品类别（cache/page_149、150）→ `FOOD_ADDITIVE_EXCEPTIONS`，并通过 CONTAINS 关联 68 条例外 FoodCategory。
 
 ## 6. 数据导入顺序（推荐）
 

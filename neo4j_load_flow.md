@@ -21,7 +21,7 @@
 
 - **必须**用 **FoodCategoryGroup** 表达，例如：
   - 规则：「各类食品，表A.2中编号为1~68的食品类别除外」
-  - 建 FoodCategoryGroup：`code = 'TABLE_A2_EXCEPTIONS'`，`name = '各类食品（表A.2中1~68除外）'`
+  - 建 FoodCategoryGroup：`code = 'FOOD_ADDITIVE_EXCEPTIONS'`，`name = '各类食品（表A.2中1~68除外）'`
   - Chemical 与该组的关系：**PERMITTED_IN_GROUP**，属性 `max_usage`、`exclude_group`（如 `'1~68'`）
 - **禁止**把该规则展开成多条 Chemical -[:PERMITTED_IN]-> FoodCategory；否则与标准语义不符且数据膨胀。
 
@@ -39,7 +39,7 @@
 
 | 步骤 | 说明 | 节点/关系 |
 |------|------|-----------|
-| 1 | 预置 FoodCategoryGroup（若尚未存在） | MERGE FoodCategoryGroup（如 TABLE_A2_EXCEPTIONS） |
+| 1 | 预置 FoodCategoryGroup（若尚未存在） | MERGE FoodCategoryGroup（如 FOOD_ADDITIVE_EXCEPTIONS |
 | 2 | 预置 FoodCategory（按需，可批量或按条） | MERGE FoodCategory |
 | 3 | 预置 Function（按需） | MERGE Function |
 | 4 | 以 **Chemical.id**（CNS 优先）MERGE Chemical，写 name_zh、name_en | 1 个 Chemical/物质 |

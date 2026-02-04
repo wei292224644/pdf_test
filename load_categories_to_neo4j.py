@@ -2,7 +2,7 @@
 """
 从 cache 导入食品分类与例外类别到 Neo4j：
 - page_245～254：表 E.1 食品分类系统 → FoodCategory（code, name）
-- page_149、150：表 A.2 例外食品类别 → FoodCategoryGroup TABLE_A2_EXCEPTIONS -[:CONTAINS]-> FoodCategory
+- page_149、150：表 A.2 例外食品类别 → FoodCategoryGroup FOOD_ADDITIVE_EXCEPTIONS -[:CONTAINS]-> FoodCategory
 需先执行 neo4j_schema.cypher，再执行本脚本，最后执行 load_cache_to_neo4j.py。
 """
 import os
@@ -82,6 +82,40 @@ def parse_a2_file(content: str) -> list[tuple[int, str, str]]:
     return rows
 
 
+def calculate_level(code: str) -> int:
+    """计算食品分类号的层级深度，如 '01' -> 1, '01.02' -> 2, '01.02.03' -> 3"""
+    if not code:
+        return 0
+    return code.count(".") + 1
+
+
+def get_parent_code(code: str) -> str | None:
+    """获取父分类的code，如 '01.02.03' -> '01.02', '01.02' -> '01', '01' -> None"""
+    if not code:
+        return None
+    parts = code.split(".")
+    if len(parts) <= 1:
+        return None
+    return ".".join(parts[:-1])
+
+
+def build_hierarchy_relationships(driver, codes: list[str]) -> None:
+    """为所有食品分类建立层级关系 HAS_SUBCATEGORY"""
+    with driver.session() as session:
+        for code in codes:
+            parent_code = get_parent_code(code)
+            if parent_code:
+                # 确保父分类存在（可能不在当前列表中，但应该已经创建）
+                session.run(
+                    """
+                    MATCH (parent:FoodCategory { code: $parent_code })
+                    MATCH (child:FoodCategory { code: $code })
+                    MERGE (parent)-[:HAS_SUBCATEGORY]->(child)
+                    """,
+                    {"parent_code": parent_code, "code": code},
+                )
+
+
 def main():
     root = Path(__file__).resolve().parent
     cache_dir = root / "cache"
@@ -116,15 +150,28 @@ def main():
     print(
         f"表 E.1：从 page_{E1_PAGES[0]}～{E1_PAGES[-1]} 解析到 {len(unique_e1)} 条食品分类。"
     )
+    
+    # 按层级排序，确保父分类先于子分类创建
+    sorted_e1 = sorted(unique_e1, key=lambda x: (calculate_level(x[0]), x[0]))
+    
     with driver.session() as session:
-        for code, name in unique_e1:
+        for code, name in sorted_e1:
+            level = calculate_level(code)
             session.run(
-                "MERGE (fc:FoodCategory { code: $code }) SET fc.name = $name",
-                {"code": code, "name": name},
+                """
+                MERGE (fc:FoodCategory { code: $code })
+                SET fc.name = $name, fc.level = $level
+                """,
+                {"code": code, "name": name, "level": level},
             )
-    print("  FoodCategory 写入完成。")
+    print("  FoodCategory 写入完成（含 level 属性）。")
+    
+    # 建立层级关系 HAS_SUBCATEGORY
+    print("  正在建立层级关系...")
+    build_hierarchy_relationships(driver, [code for code, _ in sorted_e1])
+    print("  层级关系 HAS_SUBCATEGORY 建立完成。")
 
-    # 2) 表 A.2：FoodCategoryGroup TABLE_A2_EXCEPTIONS 及 CONTAINS（带例外食品类别编号 exception_no）
+    # 2) 表 A.2：FoodCategoryGroup FOOD_ADDITIVE_EXCEPTIONS 及 CONTAINS（带例外食品类别编号 exception_no）
     a2_rows: list[tuple[int, str, str]] = []
     for p in A2_PAGES:
         fp = cache_dir / f"page_{p}.md"
@@ -138,21 +185,34 @@ def main():
     )
     with driver.session() as session:
         session.run(
-            "MERGE (g:FoodCategoryGroup { code: 'TABLE_A2_EXCEPTIONS' }) SET g.name = '各类食品（表A.2中编号为1~68的食品类别除外）'"
+            "MERGE (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' }) SET g.name = '各类食品（表A.2中编号为1~68的食品类别除外）'"
         )
         for exception_no, code, name in a2_rows:
+            level = calculate_level(code)
             session.run(
                 """
-                MERGE (fc:FoodCategory { code: $code }) SET fc.name = $name
+                MERGE (fc:FoodCategory { code: $code })
+                SET fc.name = $name, fc.level = $level
                 WITH fc
-                MATCH (g:FoodCategoryGroup { code: 'TABLE_A2_EXCEPTIONS' })
+                MATCH (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' })
                 MERGE (g)-[r:CONTAINS]->(fc)
                 SET r.exception_no = $exception_no
                 """,
-                {"exception_no": exception_no, "code": code, "name": name},
+                {"exception_no": exception_no, "code": code, "name": name, "level": level},
             )
+            # 为A.2中的分类也建立层级关系
+            parent_code = get_parent_code(code)
+            if parent_code:
+                session.run(
+                    """
+                    MATCH (parent:FoodCategory { code: $parent_code })
+                    MATCH (child:FoodCategory { code: $code })
+                    MERGE (parent)-[:HAS_SUBCATEGORY]->(child)
+                    """,
+                    {"parent_code": parent_code, "code": code},
+                )
     print(
-        "  FoodCategoryGroup TABLE_A2_EXCEPTIONS 及 CONTAINS（含 exception_no）写入完成。"
+        "  FoodCategoryGroup FOOD_ADDITIVE_EXCEPTIONS 及 CONTAINS（含 exception_no）写入完成。"
     )
 
     driver.close()

@@ -273,12 +273,19 @@ def cypher_escape(s: str) -> str:
     return str(s).replace("\\", "\\\\").replace("'", "''")
 
 
+def calculate_level(code: str) -> int:
+    """计算食品分类号的层级深度，如 '01' -> 1, '01.02' -> 2, '01.02.03' -> 3"""
+    if not code:
+        return 0
+    return code.count(".") + 1
+
+
 def run_parameterized(driver, stmt: str, params: dict) -> None:
     with driver.session() as session:
         session.run(stmt, params)
 
 
-def load_block(driver, block: AdditiveBlock, group_code: str = "TABLE_A2_EXCEPTIONS") -> None:
+def load_block(driver, block: AdditiveBlock, group_code: str = "FOOD_ADDITIVE_EXCEPTIONS") -> None:
     """将单个添加剂块写入 Neo4j（与 neo4j_load_examples.cypher 流程一致）"""
     cid = chemical_id(block)
     name_zh = cypher_escape(block.name_zh)
@@ -363,11 +370,13 @@ def load_block(driver, block: AdditiveBlock, group_code: str = "TABLE_A2_EXCEPTI
     for p in block.permissions:
         if p.type != "category":
             continue
+        level = calculate_level(p.code)
         run_parameterized(
             driver,
             """
             MERGE (fc:FoodCategory { code: $code })
-            ON CREATE SET fc.name = $name
+            ON CREATE SET fc.name = $name, fc.level = $level
+            ON MATCH SET fc.level = $level
             WITH fc
             MATCH (c:Chemical { id: $cid })
             CREATE (c)-[r:PERMITTED_IN]->(fc)
@@ -378,6 +387,7 @@ def load_block(driver, block: AdditiveBlock, group_code: str = "TABLE_A2_EXCEPTI
                 "cid": cid,
                 "code": p.code,
                 "name": p.name,
+                "level": level,
                 "max_usage": p.max_usage,
                 "unit": p.unit,
                 "note": p.note or "",
@@ -429,7 +439,7 @@ def main():
     # 预置 FoodCategoryGroup（若尚未存在）
     with driver.session() as session:
         session.run(
-            "MERGE (g:FoodCategoryGroup { code: 'TABLE_A2_EXCEPTIONS' }) SET g.name = '各类食品（表A.2中编号为1~68的食品类别除外）'"
+            "MERGE (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' }) SET g.name = '各类食品（表A.2中编号为1~68的食品类别除外）'"
         )
 
     for i, block in enumerate(unique_blocks):

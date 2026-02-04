@@ -1,12 +1,12 @@
 [project]
-name = "pdf-test"
+name = "gb2760-knowledge-graph"
 version = "0.1.0"
-description = "PDF转码和知识图谱系统"
+description = "GB 2760 食品添加剂知识图谱系统"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "neo4j>=5.0.0",
     "chromadb>=0.4.0",
-    "langextract>=0.1.0",
     "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
 ]

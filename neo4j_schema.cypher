@@ -29,6 +29,27 @@ FOR (n:FoodCategory) REQUIRE n.code IS UNIQUE;
 CREATE CONSTRAINT food_category_group_code IF NOT EXISTS
 FOR (n:FoodCategoryGroup) REQUIRE n.code IS UNIQUE;
 
+// Flavoring 食品用香料：以 code 为唯一标识（如 N001, S0001）
+CREATE CONSTRAINT flavoring_code IF NOT EXISTS
+FOR (n:Flavoring) REQUIRE n.code IS UNIQUE;
+
+// ProcessingAid 食品工业用加工助剂：以 code 为唯一标识（如 PA001）
+CREATE CONSTRAINT processing_aid_code IF NOT EXISTS
+FOR (n:ProcessingAid) REQUIRE n.code IS UNIQUE;
+
+// Enzyme 食品用酶制剂：以 code 为唯一标识（如 ENZ001）
+CREATE CONSTRAINT enzyme_code IF NOT EXISTS
+FOR (n:Enzyme) REQUIRE n.code IS UNIQUE;
+
+// EnzymeSource 酶制剂来源-供体配对：以 (enzyme_code, source_organism, donor_organism) 为唯一标识
+// 表示一个酶的一个来源及其对应的供体（供体可能为空）
+CREATE CONSTRAINT enzyme_source_unique IF NOT EXISTS
+FOR (n:EnzymeSource) REQUIRE (n.enzyme_code, n.source_organism, COALESCE(n.donor_organism, '')) IS UNIQUE;
+
+// Organism 生物体（微生物、植物、动物等）：以 name_zh 和 name_en 组合为唯一标识
+CREATE CONSTRAINT organism_name_unique IF NOT EXISTS
+FOR (n:Organism) REQUIRE (n.name_zh, n.name_en) IS UNIQUE;
+
 
 // -----------------------------------------------------------------------------
 // 2. 普通索引 (INDEXES)
@@ -53,6 +74,47 @@ FOR (n:FoodCategory) ON (n.name);
 // FoodCategoryGroup: 按名称查询（若有 name 字段）
 CREATE INDEX food_category_group_name IF NOT EXISTS
 FOR (n:FoodCategoryGroup) ON (n.name);
+
+// Flavoring: 按中文名、英文名、类型查询
+CREATE INDEX flavoring_name_zh IF NOT EXISTS
+FOR (n:Flavoring) ON (n.name_zh);
+
+CREATE INDEX flavoring_name_en IF NOT EXISTS
+FOR (n:Flavoring) ON (n.name_en);
+
+CREATE INDEX flavoring_type IF NOT EXISTS
+FOR (n:Flavoring) ON (n.flavoring_type);
+
+// ProcessingAid: 按中文名、英文名、类型查询
+CREATE INDEX processing_aid_name_zh IF NOT EXISTS
+FOR (n:ProcessingAid) ON (n.name_zh);
+
+CREATE INDEX processing_aid_name_en IF NOT EXISTS
+FOR (n:ProcessingAid) ON (n.name_en);
+
+CREATE INDEX processing_aid_type IF NOT EXISTS
+FOR (n:ProcessingAid) ON (n.type);
+
+// Enzyme: 按中文名、英文名查询
+CREATE INDEX enzyme_name_zh IF NOT EXISTS
+FOR (n:Enzyme) ON (n.name_zh);
+
+CREATE INDEX enzyme_name_en IF NOT EXISTS
+FOR (n:Enzyme) ON (n.name_en);
+
+// EnzymeSource: 按酶编码、来源生物体查询
+CREATE INDEX enzyme_source_enzyme_code IF NOT EXISTS
+FOR (n:EnzymeSource) ON (n.enzyme_code);
+
+CREATE INDEX enzyme_source_source_organism IF NOT EXISTS
+FOR (n:EnzymeSource) ON (n.source_organism);
+
+// Organism: 按中文名、英文名查询
+CREATE INDEX organism_name_zh IF NOT EXISTS
+FOR (n:Organism) ON (n.name_zh);
+
+CREATE INDEX organism_name_en IF NOT EXISTS
+FOR (n:Organism) ON (n.name_en);
 
 
 // -----------------------------------------------------------------------------
@@ -91,9 +153,55 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //     code        (string)  必填，食品分类号，如 "01.01.03"
 //     name        (string)  食品名称
 //
+//   FoodCategory
+//     code        (string)  必填，食品分类号，如 "01.01.03"
+//     name        (string)  食品名称
+//     level       (int)     可选，层级深度（1=第一层如"01"，2=第二层如"01.02"，3=第三层如"01.02.03"）
+//     层级关系：通过 HAS_SUBCATEGORY 关系表示，父分类指向子分类
+//     例如：01 → 01.02 → 01.02.03
+//
 //   FoodCategoryGroup
-//     code        (string)  必填，如 "ALL_FOOD", "TABLE_A2_EXCEPTIONS"
+//     code        (string)  必填，如 "FOOD_ADDITIVE_EXCEPTIONS"-食品添加剂的允许使用范围例外, "NO_FLAVORING_ALLOWED"-不得添加食品用香料、香精的食品名单, "ALL_FOODS"-可在各类食品加工过程中使用
 //     name        (string)  可选
+//     description (string)  可选
+//
+//   Flavoring 食品用香料
+//     code          (string)  必填，唯一，如 "N001", "S0001"
+//     name_zh       (string)  中文名
+//     name_en       (string)  英文名
+//     flavoring_type (string)  类型："natural"（天然）或 "synthetic"（合成）
+//     fema_number   (string)  FEMA 编号（可选）
+//
+//   ProcessingAid 食品工业用加工助剂（附录 C）
+//     code          (string)  必填，唯一，如 "PA001"
+//     name_zh       (string)  中文名（不含上标标记，如 "磷酸<sup>10)</sup>"应该存储为 "磷酸"）
+//     name_en       (string)  英文名
+//     type          (string)  类型："unlimited"（C.1：可在各类食品加工过程中使用，残留量不需限定）
+//                             或 "limited"（C.2：需要规定功能和使用范围）
+//     function      (string)  功能（仅 type="limited" 时有），如 "萃取溶剂"、"防黏剂"
+//     usage_scope   (string)  使用范围（仅 type="limited" 时有），文本描述，如 "发酵工艺"、"糖果的加工工艺"
+//                             可能包含最大使用量信息，如 "制盐工艺（最大使用量0.065 g/kg）"
+//     note          (string)  备注（可选），存储脚注说明，如 "包括磷酸（湿法），磷酸湿法仅用于制糖工艺、油脂加工工艺、发酵工艺。"
+//     footnote_ref  (string)  脚注引用（可选），如 "10)"，对应 name_zh 中的 <sup>10)</sup>
+//     sequence_no   (int)     序号（可选）
+//
+//   Enzyme 食品用酶制剂（附录 C.3）
+//     code          (string)  必填，唯一，如 "ENZ001"
+//     name_zh       (string)  中文名，如 "α-淀粉酶"
+//     name_en       (string)  英文名，如 "Alpha-amylase"
+//     sequence_no   (int)     序号（可选）
+//
+//   EnzymeSource 酶制剂来源-供体配对（附录 C.3）
+//     enzyme_code   (string)  必填，关联的酶编码
+//     source_organism (string) 必填，来源生物体的标识（关联到 Organism）
+//     donor_organism (string)  可选，供体生物体的标识（关联到 Organism）
+//     注意：一个酶可以有多个 EnzymeSource，每个 EnzymeSource 表示一个来源-供体配对
+//     例如：蛋白酶可以有多个来源，每个来源可能有不同的供体
+//
+//   Organism 生物体（微生物、植物、动物等）
+//     name_zh       (string)  必填，中文名，如 "黑曲霉"
+//     name_en       (string)  必填，英文名，如 "Aspergillus niger"
+//     注意：同一个生物体可能作为多个酶的来源或供体
 //
 // 关系类型与属性：
 //
@@ -111,5 +219,47 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //     exclude_group (string)  排除的组，如 "1~68"
 //
 //   FoodCategoryGroup -[:CONTAINS]-> FoodCategory
+//
+//   FoodCategory -[:HAS_SUBCATEGORY]-> FoodCategory
+//     表示食品分类的层级关系，父分类指向子分类
+//     例如：01 -[:HAS_SUBCATEGORY]-> 01.02 -[:HAS_SUBCATEGORY]-> 01.02.03
+//
+//   Flavoring -[:PERMITTED_IN]-> FoodCategory
+//     max_usage     (string)  最大使用量（可选）
+//     unit          (string)  单位（可选）
+//     note          (string)  备注（可选）
+//     exception_note (string) 例外说明（可选，用于脚注a的情况）
+//
+//   Enzyme -[:HAS_SOURCE]-> EnzymeSource
+//     表示酶制剂的一个来源-供体配对
+//     一个酶可以有多个 HAS_SOURCE 关系，对应不同的来源-供体配对
+//
+//   EnzymeSource -[:FROM_ORGANISM]-> Organism
+//     表示该来源-供体配对的来源生物体
+//     每个 EnzymeSource 必须有一个 FROM_ORGANISM 关系
+//
+//   EnzymeSource -[:USES_DONOR]-> Organism
+//     表示该来源-供体配对的供体生物体（用于基因工程）
+//     每个 EnzymeSource 可以有零个或一个 USES_DONOR 关系
+//     如果供体为空，则不建立此关系
+//
+// 查询示例：
+//
+//   // 查询某个酶的所有来源-供体配对
+//   MATCH (e:Enzyme {code: 'ENZ001'})-[:HAS_SOURCE]->(es:EnzymeSource)
+//   MATCH (es)-[:FROM_ORGANISM]->(source:Organism)
+//   OPTIONAL MATCH (es)-[:USES_DONOR]->(donor:Organism)
+//   RETURN e.name_zh, source.name_zh AS source_name, source.name_en AS source_name_en,
+//          donor.name_zh AS donor_name, donor.name_en AS donor_name_en
+//
+//   // 查询某个生物体作为来源的所有酶
+//   MATCH (e:Enzyme)-[:HAS_SOURCE]->(es:EnzymeSource)
+//   MATCH (es)-[:FROM_ORGANISM]->(o:Organism {name_zh: '黑曲霉'})
+//   RETURN DISTINCT e.name_zh, e.name_en
+//
+//   // 查询某个生物体作为供体的所有酶
+//   MATCH (e:Enzyme)-[:HAS_SOURCE]->(es:EnzymeSource)
+//   MATCH (es)-[:USES_DONOR]->(o:Organism {name_zh: '嗜热脂解地芽孢杆菌'})
+//   RETURN DISTINCT e.name_zh, e.name_en
 //
 // =============================================================================
