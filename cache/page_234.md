@@ -3,6 +3,17 @@
 | 序号 | 酶 | 来源<sup>a</sup> | 供体<sup>b</sup> |
 |------|-----|------------------|------------------|
 | 3 | α-淀粉酶（Alpha-amylase） | 地衣芽孢杆菌 （Bacillus licheniformis） | 嗜纤维菌 （Cytophaga sp.） |
+| | | 地衣芽孢杆菌 （Bacillus licheniformis） | |
+| | | 地衣芽孢杆菌 （Bacillus licheniformis） | 地衣芽孢杆菌 （Bacillus licheniformis） |
+| | | 地衣芽孢杆菌 （Bacillus licheniformis） | 嗜热脂解地芽孢杆菌 （Geobacillus stearothermophilus） |
+| | | 黑曲霉 （Aspergillus niger） | |
+| | | 解淀粉芽孢杆菌 （Bacillus amyloliquefaciens） | |
+| | | 枯草芽孢杆菌 （Bacillus subtilis） | |
+| | | 枯草芽孢杆菌 （Bacillus subtilis） | 嗜热脂解地芽孢杆菌 （Geobacillus stearothermophilus） |
+| | | 米根霉 （Rhizopus oryzae） | |
+| | | 米曲霉 （Aspergillus oryzae） | |
+| | | 嗜热脂解地芽孢杆菌 （Geobacillus stearothermophilus） | |
+| | | 猪或牛的胰腺 （hog or bovine pancreas） | |
 | | | 黑曲霉 （Aspergillus niger） | 微小根毛霉 （Rhizomucor pusillus） |
 | | | 李氏木霉 （Trichoderma reesei） | 白曲霉 （Aspergillus kawachii） |
 | 4 | α-乙酰乳酸脱羧酶（Alpha-acetolactate decarboxylase） | 枯草芽孢杆菌 （Bacillus subtilis） | 短小芽孢杆菌 （Bacillus brevis） |
