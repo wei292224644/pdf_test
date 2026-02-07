@@ -36,9 +36,6 @@ output/**/*.gif
 output/**/*.bmp
 output/**/*.jpg
 
-# ChromaDB 向量数据库
-chroma_graphrag/
-
 # LightRAG 索引与图存储（如果使用）
 lightrag_storage/
 

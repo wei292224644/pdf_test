@@ -6,6 +6,10 @@
 
 - Python 3.10+
 - Neo4j 4.4+ 或 5.x
+- **Ollama**（用于入库前 embedding）：本地安装并拉取模型 `qwen3-embedding:4b`  
+  ```bash
+  ollama pull qwen3-embedding:4b
+  ```
 - 已配置 `.env` 文件，包含 Neo4j 连接信息：
   ```
   NEO4J_URI=bolt://localhost:7687
@@ -13,6 +17,8 @@
   NEO4J_PASSWORD=your_password
   QWEN_API_KEY=your_qwen_api_key  # chat.py 需要
   QWEN_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1  # 可选
+  OLLAMA_EMBED_URL=http://localhost:11434/api/embed   # 可选，默认本机 Ollama
+  OLLAMA_EMBED_MODEL=qwen3-embedding:4b               # 可选
   ```
 
 ### 安装依赖
@@ -27,13 +33,13 @@ pip install -r requirements.txt
 
 **依赖说明：**
 - `neo4j` - Neo4j 图数据库驱动
-- `chromadb` - 向量数据库（用于 chat.py 的 GraphRAG）
 - `python-dotenv` - 环境变量管理
-- `requests` - HTTP 请求（chat.py 调用 Qwen API）
+- `requests` - HTTP 请求（chat.py 调用 Qwen API；入库脚本调用 Ollama embedding API）
 
 ## 🚀 数据导入流程
 
-按以下顺序执行脚本，确保数据完整性和关系正确建立：
+按以下顺序执行脚本，确保数据完整性和关系正确建立。  
+各导入脚本在写入 Neo4j **之前**会调用本地 Ollama（`qwen3-embedding:4b`）对节点文本做 embedding，并将向量写入节点的 `embedding` 属性（LIST&lt;FLOAT&gt;）；若 Ollama 未启动或调用失败，节点仍会正常写入，仅不带 `embedding`。
 
 ### 1. 清空数据库（可选，若需从头开始）
 
@@ -53,7 +59,7 @@ cypher-shell -u neo4j -p <password> -f neo4j_schema.cypher
 ```
 
 这将创建：
-- 节点唯一约束（Chemical, AdditiveCode, Function, FoodCategory, FoodCategoryGroup, Flavoring）
+- 节点唯一约束（Chemical, AdditiveCode, Function, FoodCategory, FoodCategoryGroup, Flavoring 等）
 - 普通索引（用于加速查询）
 - 关系属性索引
 
@@ -237,7 +243,6 @@ RETURN f.name_zh, fc.code, fc.name, r.max_usage, r.unit, r.exception_note
 |------|------|
 | `cache/` | PDF 解析后的 Markdown 文件（数据源） |
 | `pdfs/` | PDF 源文件 |
-| `chroma_graphrag/` | ChromaDB 向量数据库（chat.py 使用） |
 | `output/` | PDF 解析输出（可选，可删除） |
 
 ## ⚠️ 注意事项
@@ -248,6 +253,17 @@ RETURN f.name_zh, fc.code, fc.name, r.max_usage, r.unit, r.exception_note
 4. **层级关系**：`FoodCategory` 的层级关系通过 `HAS_SUBCATEGORY` 自动建立
 5. **level 属性**：所有 `FoodCategory` 节点都会自动设置 `level` 属性
 6. **香料数据依赖**：运行 `load_no_flavoring_list_to_neo4j.py` 前，必须先运行 `load_flavorings_to_neo4j.py`
+
+## 🔍 向量检索（可选，Neo4j 5.13+）
+
+若需在 **查询时做语义向量检索**（即使用 Neo4j 的 Vector Index，而不是仅按实体名/编码精确匹配），需：
+
+1. **创建向量索引**（与入库时 embedding 维度一致）：
+   ```bash
+   uv run python create_vector_indexes.py
+   ```
+2. 之后运行 `chat.py` 时，会先按实体查询图，再对用户问题做 **向量相似检索**（`db.index.vector.queryNodes`），将两类结果合并后生成回答。  
+3. 未创建向量索引或 Neo4j 版本 &lt; 5.13 时，仅使用实体图查询，不影响正常使用。
 
 ## 🎯 下一步
 

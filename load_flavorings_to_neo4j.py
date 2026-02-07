@@ -10,6 +10,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
+from embedding_ollama import get_embedding, text_for_embedding
+
 load_dotenv()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
@@ -84,30 +86,49 @@ def cypher_escape(s: str) -> str:
 
 
 def load_flavoring(driver, flavoring: dict) -> None:
-    """将单个香料写入 Neo4j"""
+    """将单个香料写入 Neo4j；入库前对 name_zh/name_en 做 Ollama embedding。"""
     code = flavoring["code"]
     name_zh = flavoring["name_zh"]
     name_en = flavoring["name_en"]
     fema_number = flavoring.get("fema_number", "")
     flavoring_type = flavoring["flavoring_type"]
-    
+
+    text = text_for_embedding(name_zh, name_en)
+    emb = get_embedding(text) if text else None
+    params = {
+        "code": code,
+        "name_zh": name_zh,
+        "name_en": name_en,
+        "flavoring_type": flavoring_type,
+        "fema_number": fema_number,
+    }
+    if emb:
+        params["embedding"] = emb
+
     with driver.session() as session:
-        session.run(
-            """
-            MERGE (f:Flavoring { code: $code })
-            SET f.name_zh = $name_zh,
-                f.name_en = $name_en,
-                f.flavoring_type = $flavoring_type,
-                f.fema_number = $fema_number
-            """,
-            {
-                "code": code,
-                "name_zh": name_zh,
-                "name_en": name_en,
-                "flavoring_type": flavoring_type,
-                "fema_number": fema_number,
-            },
-        )
+        if emb:
+            session.run(
+                """
+                MERGE (f:Flavoring { code: $code })
+                SET f.name_zh = $name_zh,
+                    f.name_en = $name_en,
+                    f.flavoring_type = $flavoring_type,
+                    f.fema_number = $fema_number,
+                    f.embedding = $embedding
+                """,
+                params,
+            )
+        else:
+            session.run(
+                """
+                MERGE (f:Flavoring { code: $code })
+                SET f.name_zh = $name_zh,
+                    f.name_en = $name_en,
+                    f.flavoring_type = $flavoring_type,
+                    f.fema_number = $fema_number
+                """,
+                params,
+            )
 
 
 def main():

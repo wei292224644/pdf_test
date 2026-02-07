@@ -141,6 +141,7 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //     id          (string)  必填，唯一
 //     name_zh     (string)  中文名
 //     name_en     (string)  英文名
+//     embedding   (list)    可选，Ollama qwen3-embedding:4b 向量（入库时写入）
 //
 //   AdditiveCode
 //     code        (string)  必填，如 "08.002", "124"
@@ -148,6 +149,7 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //
 //   Function
 //     name        (string)  必填，如 "增稠剂", "着色剂"
+//     embedding   (list)    可选，Ollama 向量
 //
 //   FoodCategory
 //     code        (string)  必填，食品分类号，如 "01.01.03"
@@ -157,6 +159,7 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //     code        (string)  必填，食品分类号，如 "01.01.03"
 //     name        (string)  食品名称
 //     level       (int)     可选，层级深度（1=第一层如"01"，2=第二层如"01.02"，3=第三层如"01.02.03"）
+//     embedding   (list)    可选，Ollama 向量（code + name）
 //     层级关系：通过 HAS_SUBCATEGORY 关系表示，父分类指向子分类
 //     例如：01 → 01.02 → 01.02.03
 //
@@ -171,6 +174,7 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //     name_en       (string)  英文名
 //     flavoring_type (string)  类型："natural"（天然）或 "synthetic"（合成）
 //     fema_number   (string)  FEMA 编号（可选）
+//     embedding     (list)    可选，Ollama 向量
 //
 //   ProcessingAid 食品工业用加工助剂（附录 C）
 //     code          (string)  必填，唯一，如 "PA001"
@@ -184,12 +188,14 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //     note          (string)  备注（可选），存储脚注说明，如 "包括磷酸（湿法），磷酸湿法仅用于制糖工艺、油脂加工工艺、发酵工艺。"
 //     footnote_ref  (string)  脚注引用（可选），如 "10)"，对应 name_zh 中的 <sup>10)</sup>
 //     sequence_no   (int)     序号（可选）
+//     embedding     (list)    可选，Ollama 向量
 //
 //   Enzyme 食品用酶制剂（附录 C.3）
 //     code          (string)  必填，唯一，如 "ENZ001"
 //     name_zh       (string)  中文名，如 "α-淀粉酶"
 //     name_en       (string)  英文名，如 "Alpha-amylase"
 //     sequence_no   (int)     序号（可选）
+//     embedding     (list)    可选，Ollama 向量
 //
 //   EnzymeSource 酶制剂来源-供体配对（附录 C.3）
 //     enzyme_code   (string)  必填，关联的酶编码
@@ -201,6 +207,7 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //   Organism 生物体（微生物、植物、动物等）
 //     name_zh       (string)  必填，中文名，如 "黑曲霉"
 //     name_en       (string)  必填，英文名，如 "Aspergillus niger"
+//     embedding     (list)    可选，Ollama 向量
 //     注意：同一个生物体可能作为多个酶的来源或供体
 //
 // 关系类型与属性：

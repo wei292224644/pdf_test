@@ -1,9 +1,6 @@
 # Neo4j 知识图谱依赖
 neo4j>=5.0.0
 
-# ChromaDB 向量数据库（用于 chat.py 的 GraphRAG）
-chromadb>=0.4.0
-
 # 工具库
 python-dotenv>=1.0.0
 requests>=2.31.0

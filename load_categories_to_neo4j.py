@@ -12,6 +12,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
+from embedding_ollama import get_embeddings_batch, text_for_embedding
+
 load_dotenv()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
@@ -153,18 +155,33 @@ def main():
     
     # 按层级排序，确保父分类先于子分类创建
     sorted_e1 = sorted(unique_e1, key=lambda x: (calculate_level(x[0]), x[0]))
-    
+    # 入库前 embedding（Ollama qwen3-embedding:4b）
+    texts_e1 = [text_for_embedding(code, name) for code, name in sorted_e1]
+    embs_e1 = get_embeddings_batch(texts_e1)
+
     with driver.session() as session:
-        for code, name in sorted_e1:
+        for idx, (code, name) in enumerate(sorted_e1):
             level = calculate_level(code)
-            session.run(
-                """
-                MERGE (fc:FoodCategory { code: $code })
-                SET fc.name = $name, fc.level = $level
-                """,
-                {"code": code, "name": name, "level": level},
-            )
-    print("  FoodCategory 写入完成（含 level 属性）。")
+            params = {"code": code, "name": name, "level": level}
+            emb = embs_e1[idx] if idx < len(embs_e1) else None
+            if emb:
+                params["embedding"] = emb
+                session.run(
+                    """
+                    MERGE (fc:FoodCategory { code: $code })
+                    SET fc.name = $name, fc.level = $level, fc.embedding = $embedding
+                    """,
+                    params,
+                )
+            else:
+                session.run(
+                    """
+                    MERGE (fc:FoodCategory { code: $code })
+                    SET fc.name = $name, fc.level = $level
+                    """,
+                    params,
+                )
+    print("  FoodCategory 写入完成（含 level、embedding 属性）。")
     
     # 建立层级关系 HAS_SUBCATEGORY
     print("  正在建立层级关系...")
@@ -183,23 +200,43 @@ def main():
     print(
         f"表 A.2：从 page_{A2_PAGES[0]}、{A2_PAGES[-1]} 解析到 {len(a2_rows)} 条例外食品类别。"
     )
+    # 入库前 embedding
+    texts_a2 = [text_for_embedding(code, name) for _, code, name in a2_rows]
+    embs_a2 = get_embeddings_batch(texts_a2)
+
     with driver.session() as session:
         session.run(
             "MERGE (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' }) SET g.name = '各类食品（表A.2中编号为1~68的食品类别除外）'"
         )
-        for exception_no, code, name in a2_rows:
+        for idx, (exception_no, code, name) in enumerate(a2_rows):
             level = calculate_level(code)
-            session.run(
-                """
-                MERGE (fc:FoodCategory { code: $code })
-                SET fc.name = $name, fc.level = $level
-                WITH fc
-                MATCH (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' })
-                MERGE (g)-[r:CONTAINS]->(fc)
-                SET r.exception_no = $exception_no
-                """,
-                {"exception_no": exception_no, "code": code, "name": name, "level": level},
-            )
+            params = {"exception_no": exception_no, "code": code, "name": name, "level": level}
+            emb = embs_a2[idx] if idx < len(embs_a2) else None
+            if emb:
+                params["embedding"] = emb
+                session.run(
+                    """
+                    MERGE (fc:FoodCategory { code: $code })
+                    SET fc.name = $name, fc.level = $level, fc.embedding = $embedding
+                    WITH fc
+                    MATCH (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' })
+                    MERGE (g)-[r:CONTAINS]->(fc)
+                    SET r.exception_no = $exception_no
+                    """,
+                    params,
+                )
+            else:
+                session.run(
+                    """
+                    MERGE (fc:FoodCategory { code: $code })
+                    SET fc.name = $name, fc.level = $level
+                    WITH fc
+                    MATCH (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' })
+                    MERGE (g)-[r:CONTAINS]->(fc)
+                    SET r.exception_no = $exception_no
+                    """,
+                    params,
+                )
             # 为A.2中的分类也建立层级关系
             parent_code = get_parent_code(code)
             if parent_code:

@@ -16,6 +16,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
+from embedding_ollama import get_embedding, text_for_embedding
+
 load_dotenv()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
@@ -265,35 +267,83 @@ def parse_enzymes_from_content(content: str) -> list[dict]:
     return enzymes
 
 
-def load_organism(driver, name_zh: str, name_en: str) -> None:
-    """创建或更新生物体节点"""
+def load_organism(
+    driver, name_zh: str, name_en: str, embedding: list | None = None
+) -> None:
+    """创建或更新生物体节点；可选写入 embedding（入库前由调用方用 Ollama 生成）。"""
+    params = {"name_zh": name_zh or "", "name_en": name_en or ""}
+    if embedding:
+        params["embedding"] = embedding
     with driver.session() as session:
-        session.run(
-            """
-            MERGE (o:Organism { name_zh: $name_zh, name_en: $name_en })
-            """,
-            {"name_zh": name_zh or "", "name_en": name_en or ""},
-        )
+        if embedding:
+            session.run(
+                """
+                MERGE (o:Organism { name_zh: $name_zh, name_en: $name_en })
+                SET o.embedding = $embedding
+                """,
+                params,
+            )
+        else:
+            session.run(
+                """
+                MERGE (o:Organism { name_zh: $name_zh, name_en: $name_en })
+                """,
+                params,
+            )
 
 
-def load_enzyme(driver, enzyme: dict) -> None:
-    """将酶制剂及其来源-供体配对写入 Neo4j"""
+def _organism_embedding(
+    name_zh: str, name_en: str, cache: dict
+) -> list | None:
+    """获取生物体 embedding，使用 cache 避免重复调用 Ollama。"""
+    key = (name_zh or "", name_en or "")
+    if not (key[0] or key[1]):
+        return None
+    if key not in cache:
+        cache[key] = get_embedding(text_for_embedding(name_zh, name_en))
+    return cache[key]
+
+
+def load_enzyme(
+    driver, enzyme: dict, organism_embedding_cache: dict | None = None
+) -> None:
+    """将酶制剂及其来源-供体配对写入 Neo4j；入库前对 Enzyme/Organism 做 Ollama embedding。"""
+    if organism_embedding_cache is None:
+        organism_embedding_cache = {}
+
+    enzyme_text = text_for_embedding(enzyme["name_zh"], enzyme["name_en"])
+    enzyme_emb = get_embedding(enzyme_text) if enzyme_text else None
+    enzyme_params = {
+        "code": enzyme["code"],
+        "name_zh": enzyme["name_zh"],
+        "name_en": enzyme["name_en"],
+        "sequence_no": enzyme.get("sequence_no", 0),
+    }
+    if enzyme_emb:
+        enzyme_params["embedding"] = enzyme_emb
+
     with driver.session() as session:
-        # 创建或更新酶节点
-        session.run(
-            """
-            MERGE (e:Enzyme { code: $code })
-            SET e.name_zh = $name_zh,
-                e.name_en = $name_en,
-                e.sequence_no = $sequence_no
-            """,
-            {
-                "code": enzyme["code"],
-                "name_zh": enzyme["name_zh"],
-                "name_en": enzyme["name_en"],
-                "sequence_no": enzyme.get("sequence_no", 0),
-            },
-        )
+        if enzyme_emb:
+            session.run(
+                """
+                MERGE (e:Enzyme { code: $code })
+                SET e.name_zh = $name_zh,
+                    e.name_en = $name_en,
+                    e.sequence_no = $sequence_no,
+                    e.embedding = $embedding
+                """,
+                enzyme_params,
+            )
+        else:
+            session.run(
+                """
+                MERGE (e:Enzyme { code: $code })
+                SET e.name_zh = $name_zh,
+                    e.name_en = $name_en,
+                    e.sequence_no = $sequence_no
+                """,
+                enzyme_params,
+            )
         
         # 处理每个来源-供体配对
         for pair in enzyme["source_pairs"]:
@@ -304,9 +354,10 @@ def load_enzyme(driver, enzyme: dict) -> None:
             donor_en = pair.get("donor_en")
             donor_organism = pair.get("donor_organism")
             
-            # 创建或获取来源生物体节点
+            # 创建或获取来源生物体节点（带 embedding）
             if source_zh or source_en:
-                load_organism(driver, source_zh or "", source_en or "")
+                emb = _organism_embedding(source_zh, source_en, organism_embedding_cache)
+                load_organism(driver, source_zh or "", source_en or "", embedding=emb)
             
             # 创建 EnzymeSource 节点
             # 确保 donor_organism 为空字符串而不是 None
@@ -365,9 +416,10 @@ def load_enzyme(driver, enzyme: dict) -> None:
                     },
                 )
             
-            # 建立 EnzymeSource -[:USES_DONOR]-> Organism 关系（供体，如果有）
+            # 建立 EnzymeSource -[:USES_DONOR]-> Organism 关系（供体，如果有）；带 embedding
             if donor_zh or donor_en:
-                load_organism(driver, donor_zh or "", donor_en or "")
+                emb = _organism_embedding(donor_zh, donor_en, organism_embedding_cache)
+                load_organism(driver, donor_zh or "", donor_en or "", embedding=emb)
                 session.run(
                     """
                     MATCH (es:EnzymeSource {
@@ -427,9 +479,9 @@ def main():
     
     print(f"\n共解析出 {len(all_enzymes)} 个酶制剂")
     
-    # 导入 Neo4j
+    organism_embedding_cache: dict = {}
     for enzyme in all_enzymes.values():
-        load_enzyme(driver, enzyme)
+        load_enzyme(driver, enzyme, organism_embedding_cache=organism_embedding_cache)
         print(
             f"导入酶: {enzyme['name_zh']} ({enzyme['name_en']}) - {len(enzyme['source_pairs'])} 个来源-供体配对"
         )

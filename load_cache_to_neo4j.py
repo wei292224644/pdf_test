@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
+from embedding_ollama import get_embedding, text_for_embedding
+
 load_dotenv()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
@@ -285,18 +287,39 @@ def run_parameterized(driver, stmt: str, params: dict) -> None:
         session.run(stmt, params)
 
 
-def load_block(driver, block: AdditiveBlock, group_code: str = "FOOD_ADDITIVE_EXCEPTIONS") -> None:
-    """将单个添加剂块写入 Neo4j（与 neo4j_load_examples.cypher 流程一致）"""
+def load_block(
+    driver,
+    block: AdditiveBlock,
+    group_code: str = "FOOD_ADDITIVE_EXCEPTIONS",
+    function_embedding_cache: dict | None = None,
+) -> None:
+    """将单个添加剂块写入 Neo4j（与 neo4j_load_examples.cypher 流程一致）；入库前对 Chemical/Function 做 Ollama embedding。"""
     cid = chemical_id(block)
     name_zh = cypher_escape(block.name_zh)
     name_en = cypher_escape(block.name_en)
+    if function_embedding_cache is None:
+        function_embedding_cache = {}
+
+    # 入库前 embedding（Ollama qwen3-embedding:4b）
+    chemical_text = text_for_embedding(block.name_zh, block.name_en, *block.functions)
+    chem_emb = get_embedding(chemical_text)
+    params_chemical = {"id": cid, "name_zh": block.name_zh, "name_en": block.name_en}
+    if chem_emb:
+        params_chemical["embedding"] = chem_emb
 
     # 1. MERGE Chemical
-    run_parameterized(
-        driver,
-        "MERGE (c:Chemical { id: $id }) SET c.name_zh = $name_zh, c.name_en = $name_en",
-        {"id": cid, "name_zh": block.name_zh, "name_en": block.name_en},
-    )
+    if chem_emb:
+        run_parameterized(
+            driver,
+            "MERGE (c:Chemical { id: $id }) SET c.name_zh = $name_zh, c.name_en = $name_en, c.embedding = $embedding",
+            params_chemical,
+        )
+    else:
+        run_parameterized(
+            driver,
+            "MERGE (c:Chemical { id: $id }) SET c.name_zh = $name_zh, c.name_en = $name_en",
+            {"id": cid, "name_zh": block.name_zh, "name_en": block.name_en},
+        )
 
     # 2. AdditiveCode REFERS_TO Chemical（每个 CNS / INS）
     for code in block.cns_list:
@@ -328,20 +351,37 @@ def load_block(driver, block: AdditiveBlock, group_code: str = "FOOD_ADDITIVE_EX
             {"code": code, "cid": cid},
         )
 
-    # 3. HAS_FUNCTION（每个功能）
+    # 3. HAS_FUNCTION（每个功能）；Function 节点入库前 embedding
     for func in block.functions:
-        if not func.strip():
+        func = func.strip()
+        if not func:
             continue
-        run_parameterized(
-            driver,
-            """
-            MERGE (f:Function { name: $name })
-            WITH f
-            MATCH (c:Chemical { id: $cid })
-            MERGE (c)-[:HAS_FUNCTION]->(f)
-            """,
-            {"name": func.strip(), "cid": cid},
-        )
+        if func not in function_embedding_cache:
+            function_embedding_cache[func] = get_embedding(func)
+        func_emb = function_embedding_cache[func]
+        if func_emb:
+            run_parameterized(
+                driver,
+                """
+                MERGE (f:Function { name: $name })
+                SET f.embedding = $embedding
+                WITH f
+                MATCH (c:Chemical { id: $cid })
+                MERGE (c)-[:HAS_FUNCTION]->(f)
+                """,
+                {"name": func, "embedding": func_emb, "cid": cid},
+            )
+        else:
+            run_parameterized(
+                driver,
+                """
+                MERGE (f:Function { name: $name })
+                WITH f
+                MATCH (c:Chemical { id: $cid })
+                MERGE (c)-[:HAS_FUNCTION]->(f)
+                """,
+                {"name": func, "cid": cid},
+            )
 
     # 4a. PERMITTED_IN_GROUP（同一添加剂可有多种「各类食品除外」规则，用 CREATE 各建一条；exclude_group 存为整数数组）
     for p in block.permissions:
@@ -442,9 +482,10 @@ def main():
             "MERGE (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' }) SET g.name = '各类食品（表A.2中编号为1~68的食品类别除外）'"
         )
 
+    function_embedding_cache: dict[str, list | None] = {}
     for i, block in enumerate(unique_blocks):
         try:
-            load_block(driver, block)
+            load_block(driver, block, function_embedding_cache=function_embedding_cache)
             print(f"  [{i+1}/{len(unique_blocks)}] {block.name_zh} (id={chemical_id(block)})")
         except Exception as e:
             print(f"  [{i+1}] {block.name_zh} 失败: {e}")

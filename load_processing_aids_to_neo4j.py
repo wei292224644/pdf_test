@@ -10,6 +10,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
+from embedding_ollama import get_embedding, text_for_embedding
+
 load_dotenv()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
@@ -184,7 +186,15 @@ def parse_processing_aids_c2(content: str) -> list[dict]:
 
 
 def load_processing_aid(driver, aid: dict) -> None:
-    """将单个加工助剂写入 Neo4j"""
+    """将单个加工助剂写入 Neo4j；入库前对名称/功能/范围做 Ollama embedding。"""
+    text = text_for_embedding(
+        aid["name_zh"],
+        aid["name_en"],
+        aid.get("function", ""),
+        aid.get("usage_scope", ""),
+    )
+    emb = get_embedding(text) if text else None
+
     with driver.session() as session:
         params = {
             "code": aid["code"],
@@ -193,38 +203,70 @@ def load_processing_aid(driver, aid: dict) -> None:
             "type": aid["type"],
             "sequence_no": aid.get("sequence_no", 0),
         }
-        
+        if emb:
+            params["embedding"] = emb
+
         if aid["type"] == "limited":
             params["function"] = aid.get("function", "")
             params["usage_scope"] = aid.get("usage_scope", "")
             params["footnote_ref"] = aid.get("footnote_ref")
             params["note"] = aid.get("note")
-            
-            session.run(
-                """
-                MERGE (pa:ProcessingAid { code: $code })
-                SET pa.name_zh = $name_zh,
-                    pa.name_en = $name_en,
-                    pa.type = $type,
-                    pa.function = $function,
-                    pa.usage_scope = $usage_scope,
-                    pa.footnote_ref = $footnote_ref,
-                    pa.note = $note,
-                    pa.sequence_no = $sequence_no
-                """,
-                params,
-            )
+
+            if emb:
+                session.run(
+                    """
+                    MERGE (pa:ProcessingAid { code: $code })
+                    SET pa.name_zh = $name_zh,
+                        pa.name_en = $name_en,
+                        pa.type = $type,
+                        pa.function = $function,
+                        pa.usage_scope = $usage_scope,
+                        pa.footnote_ref = $footnote_ref,
+                        pa.note = $note,
+                        pa.sequence_no = $sequence_no,
+                        pa.embedding = $embedding
+                    """,
+                    params,
+                )
+            else:
+                session.run(
+                    """
+                    MERGE (pa:ProcessingAid { code: $code })
+                    SET pa.name_zh = $name_zh,
+                        pa.name_en = $name_en,
+                        pa.type = $type,
+                        pa.function = $function,
+                        pa.usage_scope = $usage_scope,
+                        pa.footnote_ref = $footnote_ref,
+                        pa.note = $note,
+                        pa.sequence_no = $sequence_no
+                    """,
+                    params,
+                )
         else:
-            session.run(
-                """
-                MERGE (pa:ProcessingAid { code: $code })
-                SET pa.name_zh = $name_zh,
-                    pa.name_en = $name_en,
-                    pa.type = $type,
-                    pa.sequence_no = $sequence_no
-                """,
-                params,
-            )
+            if emb:
+                session.run(
+                    """
+                    MERGE (pa:ProcessingAid { code: $code })
+                    SET pa.name_zh = $name_zh,
+                        pa.name_en = $name_en,
+                        pa.type = $type,
+                        pa.sequence_no = $sequence_no,
+                        pa.embedding = $embedding
+                    """,
+                    params,
+                )
+            else:
+                session.run(
+                    """
+                    MERGE (pa:ProcessingAid { code: $code })
+                    SET pa.name_zh = $name_zh,
+                        pa.name_en = $name_en,
+                        pa.type = $type,
+                        pa.sequence_no = $sequence_no
+                    """,
+                    params,
+                )
 
 
 def main():
