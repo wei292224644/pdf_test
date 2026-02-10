@@ -100,20 +100,25 @@ def get_parent_code(code: str) -> str | None:
 
 
 def build_hierarchy_relationships(driver, codes: list[str]) -> None:
-    """为所有食品分类建立层级关系 HAS_SUBCATEGORY"""
+    """为所有食品分类建立层级关系 HAS_SUBCATEGORY。
+    仅当子 code 以「父 code.」为前缀时才建边，避免错误地把 06.03.01 等挂到 08.01 下。
+    """
     with driver.session() as session:
         for code in codes:
             parent_code = get_parent_code(code)
-            if parent_code:
-                # 确保父分类存在（可能不在当前列表中，但应该已经创建）
-                session.run(
-                    """
-                    MATCH (parent:FoodCategory { code: $parent_code })
-                    MATCH (child:FoodCategory { code: $code })
-                    MERGE (parent)-[:HAS_SUBCATEGORY]->(child)
-                    """,
-                    {"parent_code": parent_code, "code": code},
-                )
+            if not parent_code:
+                continue
+            # 校验：子 code 必须形如 parent_code.xxx，否则不建边（防止 08.01 -> 06.03.01 等错链）
+            if not code.startswith(parent_code + "."):
+                continue
+            session.run(
+                """
+                MATCH (parent:FoodCategory { code: $parent_code })
+                MATCH (child:FoodCategory { code: $code })
+                MERGE (parent)-[:HAS_SUBCATEGORY]->(child)
+                """,
+                {"parent_code": parent_code, "code": code},
+            )
 
 
 def main():
@@ -200,9 +205,9 @@ def main():
                 """,
                 {"exception_no": exception_no, "code": code, "name": name, "level": level},
             )
-            # 为A.2中的分类也建立层级关系
+            # 为A.2中的分类也建立层级关系（仅当子代码确以父代码为前缀时）
             parent_code = get_parent_code(code)
-            if parent_code:
+            if parent_code and code.startswith(parent_code + "."):
                 session.run(
                     """
                     MATCH (parent:FoodCategory { code: $parent_code })

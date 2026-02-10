@@ -75,6 +75,33 @@ Neo4j 知识图谱 Schema（食品添加剂 GB 2760）：
    - 注意：同一个生物体可能作为多个酶的来源或供体
 """
 
+# 用于 LLM 生成 Cypher 的简明 Schema（节点与关系）
+CYPHER_SCHEMA_FOR_LLM = """
+节点标签及主要属性：
+- Chemical: id, name_zh, name_en
+- AdditiveCode: code_type, code
+- Function: name
+- FoodCategory: code, name, level
+- FoodCategoryGroup: code, name
+- Flavoring: code, name_zh, name_en, flavoring_type
+- ProcessingAid: code, name_zh, name_en, type, function, usage_scope, note
+- Enzyme: code, name_zh, name_en, sequence_no
+- EnzymeSource: enzyme_code, source_organism, donor_organism
+- Organism: name_zh, name_en
+
+关系类型（均为有向）及关系上的属性（RETURN 时尽量带上）：
+- AdditiveCode -[:REFERS_TO]-> Chemical
+- Chemical -[:HAS_FUNCTION]-> Function
+- Chemical -[:PERMITTED_IN]-> FoodCategory  关系属性：r.max_usage, r.unit, r.note, r.scope, r.category_name
+- Chemical -[:PERMITTED_IN_GROUP]-> FoodCategoryGroup  关系属性：r.max_usage, r.exclude_group
+- FoodCategoryGroup -[:CONTAINS]-> FoodCategory
+- FoodCategory -[:HAS_SUBCATEGORY]-> FoodCategory
+- Flavoring -[:PERMITTED_IN]-> FoodCategory  关系属性：r.max_usage, r.unit, r.note, r.exception_note
+- Enzyme -[:HAS_SOURCE]-> EnzymeSource
+- EnzymeSource -[:FROM_ORGANISM]-> Organism
+- EnzymeSource -[:USES_DONOR]-> Organism
+"""
+
 
 def call_qwen_api(
     messages: List[Dict[str, str]], model: str = "qwen-turbo"
@@ -118,10 +145,11 @@ def extract_entities(user_query: str) -> Dict[str, List[str]]:
 - flavorings: 提到的食品用香料名称列表（如香兰素、乙基香兰素、香荚兰豆浸膏等）
 - processing_aids: 提到的加工助剂名称列表（如磷酸、甘油、活性炭等）
 - enzymes: 提到的酶制剂名称列表（如α-淀粉酶、蛋白酶等）
+- organisms: 提到的生物体名称列表（如黑曲霉、枯草芽孢杆菌等，用于查询其作为酶制剂来源或供体时对应的酶）
 
 问题：{user_query}
 
-只返回 JSON，格式：{{"chemicals": [], "food_categories": [], "functions": [], "codes": [], "flavorings": [], "processing_aids": [], "enzymes": []}}
+只返回 JSON，格式：{{"chemicals": [], "food_categories": [], "functions": [], "codes": [], "flavorings": [], "processing_aids": [], "enzymes": [], "organisms": []}}
 """
 
     messages = [{"role": "user", "content": prompt}]
@@ -136,6 +164,7 @@ def extract_entities(user_query: str) -> Dict[str, List[str]]:
             "flavorings": [],
             "processing_aids": [],
             "enzymes": [],
+            "organisms": [],
         }
 
     try:
@@ -149,7 +178,16 @@ def extract_entities(user_query: str) -> Dict[str, List[str]]:
 
         entities = json.loads(result)
         # 确保所有键都存在
-        for key in ["chemicals", "food_categories", "functions", "codes", "flavorings", "processing_aids", "enzymes"]:
+        for key in [
+            "chemicals",
+            "food_categories",
+            "functions",
+            "codes",
+            "flavorings",
+            "processing_aids",
+            "enzymes",
+            "organisms",
+        ]:
             if key not in entities:
                 entities[key] = []
         return entities
@@ -157,8 +195,119 @@ def extract_entities(user_query: str) -> Dict[str, List[str]]:
         raise Exception(f"解析实体失败: {result}")
 
 
+def generate_cypher_for_question(user_query: str) -> Optional[str]:
+    """使用 LLM 根据用户问题和 Schema 动态生成一条 Cypher 查询（只读）。"""
+    prompt = f"""你是一个 Neo4j Cypher 专家。根据下面的图 Schema 和用户问题，生成一条且仅一条 Cypher 查询，用于从图中检索回答该问题所需的数据。
+
+{CYPHER_SCHEMA_FOR_LLM}
+
+要求：
+1. 只生成 READ 查询（仅 MATCH、WHERE、RETURN、WITH、OPTIONAL MATCH、ORDER BY、LIMIT）。
+2. 禁止使用 CREATE、MERGE、DELETE、SET、REMOVE、DROP 等写操作。
+3. 对中文/名称的匹配使用 CONTAINS，例如：WHERE n.name_zh CONTAINS $name
+4. 必须包含 LIMIT，且 LIMIT 不超过 100。
+5. RETURN 时尽量把图中与问题相关的数据都查出来：节点属性（如 name_zh, name_en, code, id）以及关系上的属性（如 PERMITTED_IN 的 max_usage, unit, note）。不要只 RETURN id 和 name，否则无法回答使用量等问题。
+6. 若问题涉及具体名称（如黑曲霉、磷酸、婴幼儿配方食品），用参数 $name 表示，在返回的 Cypher 中保留 $name；执行时会传入用户问题中出现的名称，不要写死。
+7. 问「某生物体是哪些酶的来源或供体」时，正确写法示例：先 MATCH (o:Organism) WHERE o.name_zh CONTAINS $name OR o.name_en CONTAINS $name，再 MATCH (es:EnzymeSource) WHERE (es)-[:FROM_ORGANISM]->(o) OR (es)-[:USES_DONOR]->(o)，再 MATCH (e:Enzyme)-[:HAS_SOURCE]->(es)，最后 RETURN DISTINCT e.code AS enzyme_code, e.name_zh AS enzyme_name_zh, e.name_en AS enzyme_name_en。
+8. 问「某食品分类允许的添加剂/香料」时，严禁写死食品分类代码。必须用参数：MATCH (fc:FoodCategory) WHERE fc.name CONTAINS $name OR fc.code = $name，再 MATCH (c:Chemical)-[r:PERMITTED_IN]->(fc)，RETURN 时必须包含 c.id, c.name_zh, c.name_en 以及 r.max_usage, r.unit, r.note（和 fc.code, fc.name 等），以便回答使用量和范围。
+9. 问「哪些食品不得添加食品用香料」「不得添加香料的食品名单」时，必须查 FoodCategoryGroup 的 NO_FLAVORING_ALLOWED 名单，不要用「食品用香料」去匹配 FoodCategory（没有该名称的分类）。正确写法：MATCH (g:FoodCategoryGroup {{ code: 'NO_FLAVORING_ALLOWED' }})-[:CONTAINS]->(fc:FoodCategory) RETURN fc.code AS category_code, fc.name AS category_name ORDER BY fc.code LIMIT 100。若需同时查例外（如香兰素在婴幼儿谷类中的例外），可再 OPTIONAL MATCH (f:Flavoring)-[r:PERMITTED_IN]->(fc) WHERE r.exception_note IS NOT NULL RETURN fc.code, fc.name, f.code, f.name_zh, r.max_usage, r.unit, r.exception_note。
+10. 只输出一条 Cypher，不要解释；若用代码块包裹，请使用 ```cypher 或 ``` 包裹。
+
+用户问题：{user_query}
+
+请输出 Cypher 查询："""
+
+    messages = [{"role": "user", "content": prompt}]
+    result = call_qwen_api(messages)
+    if not result:
+        return None
+
+    text = result.strip()
+    # 提取代码块中的 Cypher
+    if "```" in text:
+        parts = text.split("```")
+        for i, p in enumerate(parts):
+            p = p.strip()
+            if p.startswith("cypher"):
+                p = p[6:].strip()
+            if p and not p.startswith("json") and "MATCH" in p.upper():
+                return p.strip()
+    if "MATCH" in text.upper():
+        return text.strip()
+    return None
+
+
+def _cypher_is_readonly(cypher: str) -> bool:
+    """简单检查是否为只读查询（禁止写操作关键字）。"""
+    upper = cypher.upper()
+    for keyword in ("CREATE", "MERGE", "DELETE", "SET ", "REMOVE", "DROP", "DETACH"):
+        if keyword in upper:
+            return False
+    return True
+
+
+def run_dynamic_cypher(
+    driver, cypher: str, params: Optional[Dict[str, Any]] = None
+) -> List[Dict[str, Any]]:
+    """执行动态 Cypher，返回记录列表（每行为 dict）。仅允许只读查询。"""
+    if not cypher or not _cypher_is_readonly(cypher):
+        return []
+    params = params or {}
+    try:
+        with driver.session() as session:
+            result = session.run(cypher, params)
+            records = []
+            for rec in result:
+                records.append(dict(rec))
+            return records
+    except Exception as e:
+        print(f"⚠️ 动态 Cypher 执行失败: {e}", file=sys.stderr)
+        return []
+
+
+def query_graph_context_with_llm(
+    driver, user_query: str, entities: Optional[Dict[str, List[str]]] = None
+) -> Dict[str, Any]:
+    """通过 LLM 动态生成 Cypher 并执行，将结果放入 context 的 dynamic_query_result。"""
+    cypher = generate_cypher_for_question(user_query)
+
+    # 若 Cypher 中含 $name，优先用已提取的实体（含 food_categories），否则从问题中抽中文词
+    params = {}
+    if "$name" in cypher or "CONTAINS $name" in cypher or "= $name" in cypher:
+        name_val = None
+        if entities:
+            # 食品分类、生物体、酶等按顺序取第一个作为 $name，便于按名称/代码匹配
+            for key in (
+                "food_categories",
+                "organisms",
+                "enzymes",
+                "processing_aids",
+                "flavorings",
+                "chemicals",
+            ):
+                if entities.get(key):
+                    name_val = entities[key][0]
+                    break
+        if not name_val:
+            import re
+
+            tokens = re.findall(r"[\u4e00-\u9fff]+", user_query)
+            if tokens:
+                name_val = max(tokens, key=len)
+        if name_val:
+            params["name"] = name_val
+    records = run_dynamic_cypher(driver, cypher, params)
+    print(f"🔎 生成的 Cypher: {cypher}")
+    print(f"🔎 生成的参数: {params}")
+    print(f"🔎 生成的记录: {records}")
+    return {"dynamic_query_result": records}
+
+
 def query_graph_context(
-    driver, entities: Dict[str, List[str]], max_nodes: int = 50
+    driver,
+    entities: Dict[str, List[str]],
+    max_nodes: int = 50,
+    raw_query: str = "",
 ) -> Dict[str, Any]:
     """从 Neo4j 中查询相关图结构上下文，返回结构化数据"""
     context_data: Dict[str, Any] = {
@@ -169,390 +318,31 @@ def query_graph_context(
         "flavorings": [],
         "processing_aids": [],
         "enzymes": [],
+        "organisms": [],  # 按生物体查到的酶会合并进 enzymes
     }
 
     try:
-        with driver.session() as session:
-            # 查询化学品及其关系（含 PERMITTED_IN 与 PERMITTED_IN_GROUP）
-            if entities.get("chemicals"):
-                for chem in entities["chemicals"]:
-                    # 1) 具体食品分类许可 PERMITTED_IN
-                    query = """
-                    MATCH (c:Chemical)-[r1:PERMITTED_IN]->(fc:FoodCategory)
-                    WHERE c.name_zh CONTAINS $name OR c.name_en CONTAINS $name
-                    WITH c, collect({
-                        category_code: fc.code,
-                        category_name: fc.name,
-                        max_usage: r1.max_usage,
-                        unit: r1.unit,
-                        note: r1.note
-                    }) as permissions
-                    MATCH (c)-[:HAS_FUNCTION]->(f:Function)
-                    WITH c, permissions, collect(f.name) as functions
-                    RETURN c.name_zh, c.name_en, c.id, permissions, functions
-                    LIMIT 5
-                    """
-                    result = session.run(query, {"name": chem})
-                    for record in result:
-                        chemical_data = {
-                            "name_zh": record.get("c.name_zh"),
-                            "name_en": record.get("c.name_en"),
-                            "id": record.get("c.id"),
-                            "functions": record.get("functions", []),
-                            "permissions": record.get("permissions", [])[:10],  # 限制数量
-                        }
-                        context_data["chemicals"].append(chemical_data)
+        # ---------- 原实体查询逻辑已注释，默认改用 LLM 动态生成 Cypher ----------
+        pass
+        # with driver.session() as session:
+        #     # 查询化学品及其关系（含 PERMITTED_IN 与 PERMITTED_IN_GROUP）
+        #     if entities.get("chemicals"):
+        #         for chem in entities["chemicals"]:
+        #             query = """
+        #             MATCH (c:Chemical)-[r1:PERMITTED_IN]->(fc:FoodCategory)
+        #             WHERE c.name_zh CONTAINS $name OR c.name_en CONTAINS $name
+        #             ...
+        #             """
+        #             result = session.run(query, {"name": chem})
+        #             ...
+        #             context_data["chemicals"].append(chemical_data)
 
-                    # 2) 各类食品除外规则 PERMITTED_IN_GROUP（表A.2 除外），并带出除外食品类别列表
-                    query_group = """
-                    MATCH (c:Chemical)-[r:PERMITTED_IN_GROUP]->(g:FoodCategoryGroup)
-                    WHERE c.name_zh CONTAINS $name OR c.name_en CONTAINS $name
-                    RETURN c.name_zh, c.id, r.max_usage, r.exclude_group, r.group_rule_description
-                    LIMIT 10
-                    """
-                    result_group = session.run(query_group, {"name": chem})
-                    group_rows = list(result_group)
-                    if group_rows:
-                        group_rules = []
-                        for r in group_rows:
-                            group_rules.append({
-                                "max_usage": r.get("r.max_usage"),
-                                "exclude_group": r.get("r.exclude_group"),
-                                "group_rule_description": r.get("r.group_rule_description"),
-                            })
-                        
-                        # 带出表A.2除外食品类别具体内容（FoodCategoryGroup CONTAINS FoodCategory）
-                        query_excluded = """
-                        MATCH (g:FoodCategoryGroup { code: 'FOOD_ADDITIVE_EXCEPTIONS' })-[r:CONTAINS]->(fc:FoodCategory)
-                        RETURN r.exception_no AS no, fc.code AS code, fc.name AS name
-                        ORDER BY r.exception_no
-                        """
-                        result_excluded = session.run(query_excluded)
-                        excluded_list = [
-                            {
-                                "exception_no": x.get("no"),
-                                "code": x.get("code"),
-                                "name": x.get("name"),
-                            }
-                            for x in list(result_excluded)[:30]  # 最多30条
-                        ]
-                        
-                        # 将group规则添加到最后一个chemical数据中
-                        if context_data["chemicals"]:
-                            context_data["chemicals"][-1]["group_rules"] = group_rules
-                            context_data["chemicals"][-1]["excluded_categories"] = excluded_list
-
-            # 查询功能相关的化学品
-            if entities.get("functions"):
-                for func in entities["functions"]:
-                    query = """
-                    MATCH (c:Chemical)-[:HAS_FUNCTION]->(f:Function {name: $func})
-                    RETURN c.name_zh, c.id
-                    LIMIT 20
-                    """
-                    result = session.run(query, {"func": func})
-                    chemicals = [
-                        {
-                            "name_zh": r.get("c.name_zh"),
-                            "id": r.get("c.id"),
-                        }
-                        for r in result
-                    ]
-                    if chemicals:
-                        context_data["functions"].append({
-                            "function_name": func,
-                            "chemicals": chemicals,
-                        })
-
-            # 查询食品分类相关的添加剂（这部分会在后面的香料查询中处理，这里先跳过避免重复）
-            # 注意：food_categories 的完整查询在香料部分统一处理
-
-            # 查询编码对应的化学品
-            if entities.get("codes"):
-                for code in entities["codes"]:
-                    query = """
-                    MATCH (ac:AdditiveCode)-[:REFERS_TO]->(c:Chemical)
-                    WHERE ac.code = $code
-                    RETURN c.name_zh, c.name_en, c.id, ac.code_type
-                    LIMIT 5
-                    """
-                    result = session.run(query, {"code": code})
-                    for r in result:
-                        context_data["codes"].append({
-                            "code": code,
-                            "code_type": r.get("ac.code_type"),
-                            "chemical": {
-                                "name_zh": r.get("c.name_zh"),
-                                "name_en": r.get("c.name_en"),
-                                "id": r.get("c.id"),
-                            },
-                        })
-
-            # 查询香料及其与食品分类的关系
-            if entities.get("flavorings"):
-                for flavoring_name in entities["flavorings"]:
-                    # 1) 查询香料基本信息
-                    query_flavoring = """
-                    MATCH (f:Flavoring)
-                    WHERE f.name_zh CONTAINS $name OR f.name_en CONTAINS $name
-                    RETURN f.code, f.name_zh, f.name_en, f.flavoring_type, f.fema_number
-                    LIMIT 5
-                    """
-                    result = session.run(query_flavoring, {"name": flavoring_name})
-                    flavoring_records = list(result)
-
-                    if flavoring_records:
-                        for f_rec in flavoring_records:
-                            f_code = f_rec.get("f.code", "")
-                            
-                            flavoring_data = {
-                                "code": f_code,
-                                "name_zh": f_rec.get("f.name_zh"),
-                                "name_en": f_rec.get("f.name_en"),
-                                "flavoring_type": f_rec.get("f.flavoring_type"),
-                                "fema_number": f_rec.get("f.fema_number"),
-                                "permitted_in": [],
-                                "prohibited_in": [],
-                            }
-
-                            # 2) 查询该香料允许使用的食品分类
-                            query_permitted = """
-                            MATCH (f:Flavoring {code: $code})-[r:PERMITTED_IN]->(fc:FoodCategory)
-                            RETURN fc.code, fc.name, r.max_usage, r.unit, r.note, r.exception_note
-                            ORDER BY fc.code
-                            LIMIT 20
-                            """
-                            result_permitted = session.run(
-                                query_permitted, {"code": f_code}
-                            )
-                            for p in result_permitted:
-                                flavoring_data["permitted_in"].append({
-                                    "category_code": p.get("fc.code"),
-                                    "category_name": p.get("fc.name"),
-                                    "max_usage": p.get("r.max_usage"),
-                                    "unit": p.get("r.unit"),
-                                    "note": p.get("r.note"),
-                                    "exception_note": p.get("r.exception_note"),
-                                })
-
-                            # 3) 查询该香料是否在不得添加香料的食品名单中（通过反向查询）
-                            query_no_flavoring = """
-                            MATCH (g:FoodCategoryGroup {code: 'NO_FLAVORING_ALLOWED'})-[:CONTAINS]->(fc:FoodCategory)
-                            MATCH (f:Flavoring)
-                            WHERE (f.name_zh CONTAINS $name OR f.name_en CONTAINS $name)
-                              AND NOT EXISTS((f)-[:PERMITTED_IN]->(fc))
-                            RETURN DISTINCT fc.code, fc.name
-                            LIMIT 10
-                            """
-                            result_no = session.run(
-                                query_no_flavoring, {"name": flavoring_name}
-                            )
-                            for n in result_no:
-                                flavoring_data["prohibited_in"].append({
-                                    "category_code": n.get("fc.code"),
-                                    "category_name": n.get("fc.name"),
-                                })
-                            
-                            context_data["flavorings"].append(flavoring_data)
-
-            # 查询食品分类是否允许添加香料
-            if entities.get("food_categories"):
-                for fc_query in entities["food_categories"]:
-                    category_data = {
-                        "query": fc_query,
-                        "is_prohibited": False,
-                        "category_code": None,
-                        "category_name": None,
-                        "exceptions": [],
-                        "allowed_flavorings": [],
-                        "allowed_additives": [],
-                    }
-                    
-                    # 检查是否在不得添加香料的名单中
-                    query_no_flavoring_group = """
-                    MATCH (g:FoodCategoryGroup {code: 'NO_FLAVORING_ALLOWED'})-[:CONTAINS]->(fc:FoodCategory)
-                    WHERE fc.code = $code OR fc.name CONTAINS $code
-                    RETURN fc.code, fc.name
-                    LIMIT 5
-                    """
-                    result_no_group = session.run(
-                        query_no_flavoring_group, {"code": fc_query}
-                    )
-                    no_group_list = list(result_no_group)
-
-                    if no_group_list:
-                        for fc_rec in no_group_list:
-                            category_data["is_prohibited"] = True
-                            category_data["category_code"] = fc_rec.get("fc.code")
-                            category_data["category_name"] = fc_rec.get("fc.name")
-
-                            # 查询是否有例外情况（脚注a）
-                            query_exceptions = """
-                            MATCH (f:Flavoring)-[r:PERMITTED_IN]->(fc:FoodCategory {code: $code})
-                            WHERE r.exception_note IS NOT NULL
-                            RETURN f.name_zh, f.code, r.max_usage, r.unit, r.note, r.exception_note
-                            LIMIT 10
-                            """
-                            result_exceptions = session.run(
-                                query_exceptions, {"code": category_data["category_code"]}
-                            )
-                            for exc in result_exceptions:
-                                category_data["exceptions"].append({
-                                    "flavoring_name": exc.get("f.name_zh"),
-                                    "flavoring_code": exc.get("f.code"),
-                                    "max_usage": exc.get("r.max_usage"),
-                                    "unit": exc.get("r.unit"),
-                                    "note": exc.get("r.note"),
-                                    "exception_note": exc.get("r.exception_note"),
-                                })
-                    else:
-                        # 查询该食品分类允许使用的香料（包括子分类）
-                        query_allowed_flavorings = """
-                        MATCH (f:Flavoring)-[r:PERMITTED_IN]->(fc:FoodCategory)
-                        WHERE fc.code = $code OR fc.name CONTAINS $code
-                        RETURN f.name_zh, f.code, f.flavoring_type, r.max_usage, r.unit, r.note, fc.code AS fc_code, fc.name AS fc_name
-                        LIMIT 20
-                        """
-                        result_allowed = session.run(
-                            query_allowed_flavorings, {"code": fc_query}
-                        )
-                        allowed_list = list(result_allowed)
-
-                        # 如果没找到，尝试通过层级关系查询（查询父分类的所有子分类）
-                        if not allowed_list:
-                            query_find_category = """
-                            MATCH (fc:FoodCategory)
-                            WHERE fc.code = $code OR fc.name CONTAINS $code
-                            RETURN fc.code AS fc_code, fc.name AS fc_name
-                            LIMIT 5
-                            """
-                            result_find = session.run(
-                                query_find_category, {"code": fc_query}
-                            )
-                            found_categories = list(result_find)
-
-                            for found_fc in found_categories:
-                                found_code = found_fc.get("fc_code", "")
-                                query_with_children = """
-                                MATCH path = (parent:FoodCategory {code: $code})-[:HAS_SUBCATEGORY*0..]->(child:FoodCategory)
-                                MATCH (f:Flavoring)-[r:PERMITTED_IN]->(child)
-                                RETURN DISTINCT f.name_zh, f.code, f.flavoring_type, r.max_usage, r.unit, r.note, child.code AS fc_code, child.name AS fc_name
-                                LIMIT 20
-                                """
-                                result_children = session.run(
-                                    query_with_children, {"code": found_code}
-                                )
-                                allowed_list.extend(list(result_children))
-
-                        # 去重并构建数据
-                        seen_flavorings = set()
-                        for a in allowed_list:
-                            f_code = a.get("f.code", "")
-                            fc_code = a.get("fc_code", "")
-                            key = (f_code, fc_code)
-                            if key in seen_flavorings:
-                                continue
-                            seen_flavorings.add(key)
-
-                            category_data["allowed_flavorings"].append({
-                                "flavoring_name": a.get("f.name_zh"),
-                                "flavoring_code": f_code,
-                                "flavoring_type": a.get("f.flavoring_type"),
-                                "max_usage": a.get("r.max_usage"),
-                                "unit": a.get("r.unit"),
-                                "note": a.get("r.note"),
-                                "category_code": fc_code,
-                                "category_name": a.get("fc_name"),
-                            })
-                        
-                        # 查询该食品分类允许使用的添加剂
-                        query_additives = """
-                        MATCH (c:Chemical)-[r:PERMITTED_IN]->(fc:FoodCategory)
-                        WHERE fc.code = $code OR fc.name CONTAINS $code
-                        RETURN c.name_zh, c.id, r.max_usage, r.unit, r.note
-                        LIMIT 20
-                        """
-                        result_additives = session.run(query_additives, {"code": fc_query})
-                        for r in result_additives:
-                            category_data["allowed_additives"].append({
-                                "name_zh": r.get("c.name_zh"),
-                                "id": r.get("c.id"),
-                                "max_usage": r.get("r.max_usage"),
-                                "unit": r.get("r.unit"),
-                                "note": r.get("r.note"),
-                            })
-                    
-                    context_data["food_categories"].append(category_data)
-
-            # 查询加工助剂
-            if entities.get("processing_aids"):
-                for aid_name in entities["processing_aids"]:
-                    query_aid = """
-                    MATCH (pa:ProcessingAid)
-                    WHERE pa.name_zh CONTAINS $name OR pa.name_en CONTAINS $name
-                    RETURN pa.code, pa.name_zh, pa.name_en, pa.type, pa.function, pa.usage_scope, pa.note, pa.footnote_ref, pa.sequence_no
-                    LIMIT 10
-                    """
-                    result_aid = session.run(query_aid, {"name": aid_name})
-                    for r in result_aid:
-                        aid_data = {
-                            "code": r.get("pa.code"),
-                            "name_zh": r.get("pa.name_zh"),
-                            "name_en": r.get("pa.name_en"),
-                            "type": r.get("pa.type"),
-                            "function": r.get("pa.function"),
-                            "usage_scope": r.get("pa.usage_scope"),
-                            "note": r.get("pa.note"),
-                            "footnote_ref": r.get("pa.footnote_ref"),
-                            "sequence_no": r.get("pa.sequence_no"),
-                        }
-                        context_data["processing_aids"].append(aid_data)
-
-            # 查询酶制剂
-            if entities.get("enzymes"):
-                for enzyme_name in entities["enzymes"]:
-                    query_enzyme = """
-                    MATCH (e:Enzyme)
-                    WHERE e.name_zh CONTAINS $name OR e.name_en CONTAINS $name
-                    RETURN e.code, e.name_zh, e.name_en, e.sequence_no
-                    LIMIT 10
-                    """
-                    result_enzyme = session.run(query_enzyme, {"name": enzyme_name})
-                    enzyme_records = list(result_enzyme)
-                    
-                    for e_rec in enzyme_records:
-                        enzyme_code = e_rec.get("e.code")
-                        enzyme_data = {
-                            "code": enzyme_code,
-                            "name_zh": e_rec.get("e.name_zh"),
-                            "name_en": e_rec.get("e.name_en"),
-                            "sequence_no": e_rec.get("e.sequence_no"),
-                            "source_pairs": [],
-                        }
-                        
-                        # 查询该酶的所有来源-供体配对
-                        query_pairs = """
-                        MATCH (e:Enzyme {code: $code})-[:HAS_SOURCE]->(es:EnzymeSource)
-                        MATCH (es)-[:FROM_ORGANISM]->(source:Organism)
-                        OPTIONAL MATCH (es)-[:USES_DONOR]->(donor:Organism)
-                        RETURN source.name_zh AS source_name_zh, source.name_en AS source_name_en,
-                               donor.name_zh AS donor_name_zh, donor.name_en AS donor_name_en
-                        ORDER BY source.name_zh
-                        """
-                        result_pairs = session.run(query_pairs, {"code": enzyme_code})
-                        for p in result_pairs:
-                            enzyme_data["source_pairs"].append({
-                                "source_name_zh": p.get("source_name_zh"),
-                                "source_name_en": p.get("source_name_en"),
-                                "donor_name_zh": p.get("donor_name_zh"),
-                                "donor_name_en": p.get("donor_name_en"),
-                            })
-                        
-                        context_data["enzymes"].append(enzyme_data)
+        #     (PERMITTED_IN_GROUP / functions / codes / flavorings / food_categories / processing_aids / enzymes / organisms 等实体查询逻辑已省略)
 
     except Exception as e:
         print(f"⚠️ 图查询错误: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
 
     return context_data
@@ -583,6 +373,9 @@ def generate_answer_with_graphrag(
     # 将结构化数据转换为JSON字符串，不进行额外转义
     context_text = ""
     if graph_context:
+        dyn = graph_context.get("dynamic_query_result")
+        if isinstance(dyn, list) and len(dyn) > 0:
+            context_text += f"【重要】以下 dynamic_query_result 共 {len(dyn)} 条记录，回答时必须逐条列出全部 {len(dyn)} 条（可用序号列表），不得只写部分或遗漏。\n\n"
         context_text += f"【图查询结果】\n{json.dumps(graph_context, ensure_ascii=False, indent=2)}\n\n"
     if vector_context:
         context_text += f"【相关历史信息】\n{vector_context}\n\n"
@@ -593,23 +386,24 @@ def generate_answer_with_graphrag(
 
 要求：
 1. 基于提供的图查询结果回答问题
-2. 如果图查询结果中没有相关信息，明确说明
-3. 回答要准确、专业、易于理解
-4. 如果涉及使用范围，要列出具体的食品分类和最大使用量
-5. 对于香料相关的问题，要特别说明：
+2. 若图查询结果中包含 dynamic_query_result（数组），回答中必须按条数逐条列出其中每一项，条目数须与数组长度一致；不得只写一条、不得遗漏、不得用“此外”“其他”等概括代替未列出的记录。仅当 dynamic_query_result 中的记录可补充说明时，再结合其他图结果或历史信息。
+3. 如果图查询结果中没有相关信息，明确说明
+4. 回答要准确、专业、易于理解
+5. 如果涉及使用范围，要列出具体的食品分类和最大使用量
+6. 对于香料相关的问题，要特别说明：
    - 该香料是天然香料还是合成香料
    - 允许使用的食品分类及使用量限制
    - 是否有例外情况
    - 是否在不得添加香料的食品名单中
-6. 对于加工助剂相关的问题，要特别说明：
+7. 对于加工助剂相关的问题，要特别说明：
    - 该加工助剂的类型（C.1：可在各类食品加工过程中使用，残留量不需限定；C.2：需要规定功能和使用范围）
    - 如果是 C.2 类型，要说明其功能和使用范围
    - 如果有备注信息，要一并说明
-7. 对于酶制剂相关的问题，要特别说明：
+8. 对于酶制剂相关的问题，要特别说明：
    - 该酶制剂的名称（中英文）
    - 允许使用的来源和供体信息
    - 如果有多个来源，要列出所有来源和对应的供体
-8. 使用中文回答
+9. 使用中文回答
 """
 
     user_prompt = f"{context_text}用户问题：{user_query}\n\n请基于以上信息回答问题："
@@ -718,7 +512,13 @@ def chat_loop():
 
             # 2. 图查询
             print("🔎 正在查询知识图谱...")
-            graph_context = query_graph_context(driver, entities)
+            graph_context = query_graph_context(driver, entities, raw_query=user_input)
+            llm_ctx = query_graph_context_with_llm(
+                driver, user_input, entities=entities
+            )
+            if llm_ctx:
+                graph_context["dynamic_query_result"] = llm_ctx["dynamic_query_result"]
+                print("🔎 已使用 LLM 动态生成并执行 Cypher，结果已合并")
 
             # 3. 向量检索
             vector_context = ""
@@ -777,7 +577,11 @@ def single_query(query: str):
     print(f"📌 识别到实体: {json.dumps(entities, ensure_ascii=False)}\n")
 
     print("🔎 正在查询知识图谱...")
-    graph_context = query_graph_context(driver, entities)
+    graph_context = query_graph_context(driver, entities, raw_query=query)
+    llm_ctx = query_graph_context_with_llm(driver, query, entities=entities)
+    if llm_ctx:
+        graph_context["dynamic_query_result"] = llm_ctx["dynamic_query_result"]
+        print("🔎 已使用 LLM 动态生成并执行 Cypher，结果已合并")
 
     vector_context = ""
     if chroma_collection:
@@ -803,7 +607,29 @@ def main():
     #     query = " ".join(sys.argv[1:])
     # else:
     #     chat_loop()
-    single_query("较大婴儿和幼儿配方食品可以使用香料吗？可以使用什么香料？")
+
+    # 酶制剂来源/供体
+    # single_query("黑曲霉是什么酶的来源或者供体？")
+    # single_query("来源于米曲霉的酶制剂有哪些？")
+
+    # 香料与不得添加香料
+    # single_query("较大婴儿和幼儿配方食品可以使用香料吗？可以使用什么香料？")
+    single_query("哪些食品不得添加食品用香料？")
+    # single_query("天然香料和合成香料在乳制品里的使用规定是什么？")
+
+    # 食品添加剂与食品分类
+    # single_query("婴幼儿配方食品的食品添加剂有哪些？")
+    # single_query("山梨酸及其钾盐可以在哪些食品中使用？限量是多少？")
+    # single_query("CNS 号 08.001 是什么添加剂？能在哪些食品里用？")
+    # single_query("小麦粉（06.03.01）允许使用哪些着色剂？")
+
+    # 加工助剂
+    # single_query("C.1 加工助剂有哪些？使用范围有什么限制？")
+    # single_query("硅藻土作为加工助剂的使用范围是什么？")
+
+    # 综合
+    # single_query("碳酸氢钠的功能和在烘焙食品中的用量？")
+    # single_query("01.01 乳及乳制品下面有哪些子分类？")
 
 
 if __name__ == "__main__":
