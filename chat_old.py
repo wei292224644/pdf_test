@@ -1,16 +1,18 @@
 """
-基于 Neo4j 知识图谱的对话查询系统
+基于 GraphRAG 的 Neo4j 对话查询系统
+结合图查询和向量检索，提供更准确的答案
 """
 
 import os
 import json
 import sys
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
+from pathlib import Path
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 import requests
-
-from embedding_ollama import get_embedding
+import chromadb
+from chromadb.config import Settings
 
 load_dotenv()
 
@@ -24,6 +26,10 @@ QWEN_API_URL = os.getenv(
     "QWEN_API_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
 QWEN_API_KEY = os.getenv("QWEN_API_KEY", "")
+
+# ChromaDB 配置
+CHROMA_DB_PATH = Path(__file__).parent / "chroma_graphrag"
+CHROMA_COLLECTION_NAME = "neo4j_graph_summaries"
 
 # Neo4j Schema 说明
 NEO4J_SCHEMA = """
@@ -129,6 +135,66 @@ def call_qwen_api(
         return None
 
 
+def extract_entities(user_query: str) -> Dict[str, List[str]]:
+    """使用 LLM 从用户查询中提取实体"""
+    prompt = f"""从以下问题中提取关键实体，返回 JSON 格式：
+- chemicals: 提到的食品添加剂名称列表
+- food_categories: 提到的食品分类代码或名称列表
+- functions: 提到的功能名称列表
+- codes: 提到的 CNS/INS 编码列表
+- flavorings: 提到的食品用香料名称列表（如香兰素、乙基香兰素、香荚兰豆浸膏等）
+- processing_aids: 提到的加工助剂名称列表（如磷酸、甘油、活性炭等）
+- enzymes: 提到的酶制剂名称列表（如α-淀粉酶、蛋白酶等）
+- organisms: 提到的生物体名称列表（如黑曲霉、枯草芽孢杆菌等，用于查询其作为酶制剂来源或供体时对应的酶）
+
+问题：{user_query}
+
+只返回 JSON，格式：{{"chemicals": [], "food_categories": [], "functions": [], "codes": [], "flavorings": [], "processing_aids": [], "enzymes": [], "organisms": []}}
+"""
+
+    messages = [{"role": "user", "content": prompt}]
+    result = call_qwen_api(messages)
+
+    if not result:
+        return {
+            "chemicals": [],
+            "food_categories": [],
+            "functions": [],
+            "codes": [],
+            "flavorings": [],
+            "processing_aids": [],
+            "enzymes": [],
+            "organisms": [],
+        }
+
+    try:
+        # 清理可能的 Markdown 代码块
+        result = result.strip()
+        if result.startswith("```"):
+            lines = result.split("\n")
+            result = "\n".join(lines[1:-1]) if len(lines) > 2 else result
+        if result.startswith("json"):
+            result = result[4:].strip()
+
+        entities = json.loads(result)
+        # 确保所有键都存在
+        for key in [
+            "chemicals",
+            "food_categories",
+            "functions",
+            "codes",
+            "flavorings",
+            "processing_aids",
+            "enzymes",
+            "organisms",
+        ]:
+            if key not in entities:
+                entities[key] = []
+        return entities
+    except:
+        raise Exception(f"解析实体失败: {result}")
+
+
 def generate_cypher_for_question(user_query: str) -> Optional[str]:
     """使用 LLM 根据用户问题和 Schema 动态生成一条 Cypher 查询（只读）。"""
     prompt = f"""你是一个 Neo4j Cypher 专家。根据下面的图 Schema 和用户问题，生成一条且仅一条 Cypher 查询，用于从图中检索回答该问题所需的数据。
@@ -157,6 +223,7 @@ def generate_cypher_for_question(user_query: str) -> Optional[str]:
         return None
 
     text = result.strip()
+    # 提取代码块中的 Cypher
     if "```" in text:
         parts = text.split("```")
         for i, p in enumerate(parts):
@@ -203,13 +270,13 @@ def query_graph_context_with_llm(
 ) -> Dict[str, Any]:
     """通过 LLM 动态生成 Cypher 并执行，将结果放入 context 的 dynamic_query_result。"""
     cypher = generate_cypher_for_question(user_query)
-    if not cypher:
-        return {}
 
+    # 若 Cypher 中含 $name，优先用已提取的实体（含 food_categories），否则从问题中抽中文词
     params = {}
     if "$name" in cypher or "CONTAINS $name" in cypher or "= $name" in cypher:
         name_val = None
         if entities:
+            # 食品分类、生物体、酶等按顺序取第一个作为 $name，便于按名称/代码匹配
             for key in (
                 "food_categories",
                 "organisms",
@@ -223,271 +290,95 @@ def query_graph_context_with_llm(
                     break
         if not name_val:
             import re
+
             tokens = re.findall(r"[\u4e00-\u9fff]+", user_query)
             if tokens:
                 name_val = max(tokens, key=len)
         if name_val:
             params["name"] = name_val
-
     records = run_dynamic_cypher(driver, cypher, params)
     print(f"🔎 生成的 Cypher: {cypher}")
     print(f"🔎 生成的参数: {params}")
-    print(f"🔎 生成的记录数: {len(records)}")
+    print(f"🔎 生成的记录: {records}")
     return {"dynamic_query_result": records}
 
 
-def _serialize_value(v: Any) -> Any:
-    """将 Neo4j 返回的 Node/Relationship 等转为可 JSON 序列化的类型。"""
-    if v is None:
-        return None
-    if hasattr(v, "keys") and hasattr(v, "get"):
-        # Node / Relationship：按属性名递归序列化
-        try:
-            return {k: _serialize_value(v.get(k)) for k in v.keys()}
-        except Exception:
-            return str(v)
-    if isinstance(v, (list, tuple)):
-        return [_serialize_value(x) for x in v]
-    if isinstance(v, (str, int, float, bool)):
-        return v
-    return str(v)
-
-
-def execute_cypher_context(
-    driver, cypher_list: List[str], params: Dict[str, Any] | None = None
+def query_graph_context(
+    driver,
+    entities: Dict[str, List[str]],
+    max_nodes: int = 50,
+    raw_query: str = "",
 ) -> Dict[str, Any]:
-    """
-    执行 LLM 生成的 Cypher 列表，将每条的结果转为可读的结构（list of dict），
-    合并为 {"llm_cypher_results": [{"cypher": "...", "records": [...]}]}。
-    若提供 params，则每条 Cypher 用该参数执行（用于向量命中后的展开查询）。
-    """
-    if not cypher_list:
-        return {}
-    results = []
-    try:
-        with driver.session() as session:
-            for cypher in cypher_list:
-                try:
-                    r = session.run(cypher, params or {})
-                    records = []
-                    for rec in r:
-                        row = {k: _serialize_value(rec.get(k)) for k in rec.keys()}
-                        records.append(row)
-                    results.append({"cypher": cypher[:200] + ("..." if len(cypher) > 200 else ""), "records": records[:50]})
-                except Exception as e:
-                    results.append({"cypher": cypher[:200], "error": str(e), "records": []})
-    except Exception as e:
-        print(f"⚠️ 执行 LLM 生成的 Cypher 失败: {e}", file=sys.stderr)
-        return {}
-    return {"llm_cypher_results": results}
-
-
-def extract_entities(user_query: str) -> Dict[str, List[str]]:
-    """使用 LLM 从用户查询中提取实体"""
-    prompt = f"""从以下问题中提取关键实体，返回 JSON 格式：
-- chemicals: 提到的食品添加剂名称列表
-- food_categories: 提到的食品分类代码或名称列表
-- functions: 提到的功能名称列表
-- codes: 提到的 CNS/INS 编码列表
-- flavorings: 提到的食品用香料名称列表（如香兰素、乙基香兰素、香荚兰豆浸膏等）
-- processing_aids: 提到的加工助剂名称列表（如磷酸、甘油、活性炭等）
-- enzymes: 提到的酶制剂名称列表（如α-淀粉酶、蛋白酶等）
-- organisms: 提到的生物体名称列表（如黑曲霉、枯草芽孢杆菌等，用于查询其作为酶制剂来源或供体时对应的酶）
-
-问题：{user_query}
-
-只返回 JSON，格式：{{"chemicals": [], "food_categories": [], "functions": [], "codes": [], "flavorings": [], "processing_aids": [], "enzymes": [], "organisms": []}}
-"""
-
-    messages = [{"role": "user", "content": prompt}]
-    result = call_qwen_api(messages)
-
-    if not result:
-        return {
-            "chemicals": [],
-            "food_categories": [],
-            "functions": [],
-            "codes": [],
-            "flavorings": [],
-            "processing_aids": [],
-            "enzymes": [],
-            "organisms": [],
-        }
-
-    try:
-        # 清理可能的 Markdown 代码块
-        result = result.strip()
-        if result.startswith("```"):
-            lines = result.split("\n")
-            result = "\n".join(lines[1:-1]) if len(lines) > 2 else result
-        if result.startswith("json"):
-            result = result[4:].strip()
-
-        entities = json.loads(result)
-        for key in [
-            "chemicals", "food_categories", "functions", "codes",
-            "flavorings", "processing_aids", "enzymes", "organisms",
-        ]:
-            if key not in entities:
-                entities[key] = []
-        return entities
-    except:
-        raise Exception(f"解析实体失败: {result}")
-
-
-# 空图上下文结构，图数据由 query_graph_context_with_llm 的 dynamic_query_result 及可选的向量检索结果填充
-EMPTY_GRAPH_CONTEXT: Dict[str, Any] = {
-    "chemicals": [],
-    "functions": [],
-    "food_categories": [],
-    "codes": [],
-    "flavorings": [],
-    "processing_aids": [],
-    "enzymes": [],
-}
-
-# 向量索引名称（需先运行 create_vector_indexes.py，Neo4j 5.13+）
-VECTOR_INDEX_CHEMICAL = "chemical_embedding"
-VECTOR_INDEX_FLAVORING = "flavoring_embedding"
-VECTOR_INDEX_FOOD_CATEGORY = "foodcategory_embedding"
-VECTOR_INDEX_PROCESSING_AID = "processingaid_embedding"
-VECTOR_INDEX_ENZYME = "enzyme_embedding"
-VECTOR_SEARCH_TOP_K = 5
-
-
-def get_vector_hits(
-    driver, user_query: str, top_k: int = VECTOR_SEARCH_TOP_K
-) -> Dict[str, List[str]]:
-    """
-    仅做向量 k-NN 检索，返回各标签下命中节点的 id/code 列表。
-    不写任何展开逻辑，展开由 LLM 生成 Cypher 完成。
-    """
-    out = {
-        "chemical_ids": [],
-        "flavoring_codes": [],
-        "food_category_codes": [],
-        "processing_aid_codes": [],
-        "enzyme_codes": [],
+    """从 Neo4j 中查询相关图结构上下文，返回结构化数据"""
+    context_data: Dict[str, Any] = {
+        "chemicals": [],
+        "functions": [],
+        "food_categories": [],
+        "codes": [],
+        "flavorings": [],
+        "processing_aids": [],
+        "enzymes": [],
+        "organisms": [],  # 按生物体查到的酶会合并进 enzymes
     }
-    query_emb = get_embedding(user_query)
-    if not query_emb:
-        return out
-    params = {"k": top_k, "vector": query_emb}
+
     try:
-        with driver.session() as session:
-            for index_key, index_name in [
-                ("chemical_ids", VECTOR_INDEX_CHEMICAL),
-                ("flavoring_codes", VECTOR_INDEX_FLAVORING),
-                ("food_category_codes", VECTOR_INDEX_FOOD_CATEGORY),
-                ("processing_aid_codes", VECTOR_INDEX_PROCESSING_AID),
-                ("enzyme_codes", VECTOR_INDEX_ENZYME),
-            ]:
-                try:
-                    r = session.run(
-                        """
-                        CALL db.index.vector.queryNodes($index, $k, $vector)
-                        YIELD node
-                        WHERE node.id IS NOT NULL OR node.code IS NOT NULL
-                        RETURN coalesce(node.id, node.code) AS id
-                        LIMIT $k
-                        """,
-                        {**params, "index": index_name},
-                    )
-                    ids = [rec["id"] for rec in r if rec.get("id")]
-                    out[index_key] = ids
-                except Exception:
-                    out[index_key] = []
+        # ---------- 原实体查询逻辑已注释，默认改用 LLM 动态生成 Cypher ----------
+        pass
+        # with driver.session() as session:
+        #     # 查询化学品及其关系（含 PERMITTED_IN 与 PERMITTED_IN_GROUP）
+        #     if entities.get("chemicals"):
+        #         for chem in entities["chemicals"]:
+        #             query = """
+        #             MATCH (c:Chemical)-[r1:PERMITTED_IN]->(fc:FoodCategory)
+        #             WHERE c.name_zh CONTAINS $name OR c.name_en CONTAINS $name
+        #             ...
+        #             """
+        #             result = session.run(query, {"name": chem})
+        #             ...
+        #             context_data["chemicals"].append(chemical_data)
+
+        #     (PERMITTED_IN_GROUP / functions / codes / flavorings / food_categories / processing_aids / enzymes / organisms 等实体查询逻辑已省略)
+
     except Exception as e:
-        print(f"⚠️ 向量检索失败: {e}", file=sys.stderr)
-    return out
+        print(f"⚠️ 图查询错误: {e}", file=sys.stderr)
+        import traceback
+
+        traceback.print_exc()
+
+    return context_data
 
 
-def generate_expansion_cypher(
-    vector_hits: Dict[str, List[str]], user_query: str
-) -> List[str]:
-    """
-    根据向量命中的节点 id/code，让 LLM 生成用于展开上下文的 Cypher（带参数），
-    避免手写大量展开查询。
-    """
-    if not any(vector_hits.values()):
-        return []
-    hits_json = json.dumps(vector_hits, ensure_ascii=False)
-    prompt = f"""你是一个 Neo4j Cypher 专家。下面是通过向量相似度检索得到的节点 id/code 列表（与用户问题语义相关），以及知识图谱 Schema。请生成 1～5 条 Cypher 查询，用于从图中取出这些节点及其相关关系，以便回答用户问题。要求：
+def get_vector_context(user_query: str, chroma_client, collection) -> str:
+    """从向量数据库中检索相关上下文"""
+    try:
+        results = collection.query(query_texts=[user_query], n_results=3)
 
-1. 只写只读查询（MATCH ... RETURN），不要写 DELETE/CREATE/SET。
-2. 必须使用以下参数名（列表类型），在 Cypher 中用 IN 或 UNWIND 使用：
-   - $chemical_ids：Chemical 的 id 列表
-   - $flavoring_codes：Flavoring 的 code 列表
-   - $food_category_codes：FoodCategory 的 code 列表
-   - $processing_aid_codes：ProcessingAid 的 code 列表
-   - $enzyme_codes：Enzyme 的 code 列表
-3. 示例：MATCH (c:Chemical) WHERE c.id IN $chemical_ids 或 UNWIND $food_category_codes AS code MATCH (fc:FoodCategory {{code: code}}) ...
-4. 查询应带回与许可、功能、分类等相关的信息（PERMITTED_IN、HAS_FUNCTION、CONTAINS 等），便于回答问题。
-5. 只输出 Cypher，多条用分号加换行分隔，不要 Markdown 包裹和多余解释。
+        if results and results.get("documents") and results["documents"][0]:
+            contexts = results["documents"][0]
+            return "\n\n".join(contexts)
+    except Exception as e:
+        print(f"⚠️ 向量检索错误: {e}", file=sys.stderr)
 
-Schema：
-{NEO4J_SCHEMA}
-
-向量命中结果：
-{hits_json}
-
-用户问题：{user_query}
-
-请直接输出 Cypher 语句："""
-
-    messages = [{"role": "user", "content": prompt}]
-    result = call_qwen_api(messages)
-    if not result:
-        return []
-    text = result.strip()
-    if "```" in text:
-        import re
-        parts = re.split(r"```(?:cypher)?\s*", text, flags=re.IGNORECASE)
-        text = "".join(p for i, p in enumerate(parts) if i % 2 == 1) or text
-    statements = []
-    for raw in text.replace(";", "\n;").split(";"):
-        stmt = raw.strip().strip(";").strip()
-        if stmt and (stmt.upper().startswith("MATCH") or stmt.upper().startswith("UNWIND") or stmt.upper().startswith("CALL")):
-            statements.append(stmt)
-    return statements[:5]
+    return ""
 
 
-def query_graph_context_by_vector(
-    driver, user_query: str, top_k: int = VECTOR_SEARCH_TOP_K
-) -> Dict[str, Any]:
-    """
-    向量检索 + LLM 生成展开 Cypher，不再手写展开逻辑。
-    流程：get_vector_hits → generate_expansion_cypher → execute_cypher_context(带参数)。
-    """
-    vector_hits = get_vector_hits(driver, user_query, top_k)
-    if not any(vector_hits.values()):
-        return {}
-    expansion_cypher = generate_expansion_cypher(vector_hits, user_query)
-    if not expansion_cypher:
-        return {}
-    params = {
-        "chemical_ids": vector_hits.get("chemical_ids") or [],
-        "flavoring_codes": vector_hits.get("flavoring_codes") or [],
-        "food_category_codes": vector_hits.get("food_category_codes") or [],
-        "processing_aid_codes": vector_hits.get("processing_aid_codes") or [],
-        "enzyme_codes": vector_hits.get("enzyme_codes") or [],
-    }
-    return execute_cypher_context(driver, expansion_cypher, params)
-
-
-def generate_answer(
+def generate_answer_with_graphrag(
     user_query: str,
     graph_context: Dict[str, Any],
+    vector_context: str,
     conversation_history: List[Dict[str, str]] = None,
 ) -> str:
-    """基于图查询结果生成答案（优先使用 LLM 生成的 Cypher 结果 dynamic_query_result）"""
+    """使用 GraphRAG 方法生成答案"""
 
+    # 将结构化数据转换为JSON字符串，不进行额外转义
     context_text = ""
     if graph_context:
         dyn = graph_context.get("dynamic_query_result")
         if isinstance(dyn, list) and len(dyn) > 0:
             context_text += f"【重要】以下 dynamic_query_result 共 {len(dyn)} 条记录，回答时必须逐条列出全部 {len(dyn)} 条（可用序号列表），不得只写部分或遗漏。\n\n"
         context_text += f"【图查询结果】\n{json.dumps(graph_context, ensure_ascii=False, indent=2)}\n\n"
+    if vector_context:
+        context_text += f"【相关历史信息】\n{vector_context}\n\n"
 
     system_prompt = f"""你是一个食品添加剂和食品用香料知识图谱助手。根据用户的问题和提供的图查询结果，给出准确、详细的回答。
 
@@ -495,7 +386,7 @@ def generate_answer(
 
 要求：
 1. 基于提供的图查询结果回答问题
-2. 若图查询结果中包含 dynamic_query_result（数组），回答中必须按条数逐条列出其中每一项，条目数须与数组长度一致；不得只写一条、不得遗漏、不得用「此外」「其他」等概括代替未列出的记录。仅当 dynamic_query_result 中的记录可补充说明时，再结合其他图结果。
+2. 若图查询结果中包含 dynamic_query_result（数组），回答中必须按条数逐条列出其中每一项，条目数须与数组长度一致；不得只写一条、不得遗漏、不得用“此外”“其他”等概括代替未列出的记录。仅当 dynamic_query_result 中的记录可补充说明时，再结合其他图结果或历史信息。
 3. 如果图查询结果中没有相关信息，明确说明
 4. 回答要准确、专业、易于理解
 5. 如果涉及使用范围，要列出具体的食品分类和最大使用量
@@ -528,6 +419,49 @@ def generate_answer(
     return answer or "抱歉，无法生成回答。请检查 API 配置或重试。"
 
 
+def store_graph_summary(collection, summary: str, query: str):
+    """将图查询结果存储到向量数据库"""
+    try:
+        # 生成唯一 ID
+        import hashlib
+
+        doc_id = hashlib.md5(query.encode()).hexdigest()
+
+        # 检查是否已存在
+        try:
+            existing = collection.get(ids=[doc_id])
+            if existing and existing.get("ids"):
+                return  # 已存在，跳过
+        except:
+            pass
+
+        collection.add(documents=[summary], ids=[doc_id], metadatas=[{"query": query}])
+    except Exception as e:
+        print(f"⚠️ 向量存储错误: {e}", file=sys.stderr)
+
+
+def init_chroma_db():
+    """初始化 ChromaDB"""
+    try:
+        client = chromadb.PersistentClient(
+            path=str(CHROMA_DB_PATH), settings=Settings(anonymized_telemetry=False)
+        )
+
+        # 获取或创建集合
+        try:
+            collection = client.get_collection(name=CHROMA_COLLECTION_NAME)
+        except:
+            collection = client.create_collection(
+                name=CHROMA_COLLECTION_NAME,
+                metadata={"description": "Neo4j graph summaries for GraphRAG"},
+            )
+
+        return client, collection
+    except Exception as e:
+        print(f"⚠️ ChromaDB 初始化失败: {e}", file=sys.stderr)
+        return None, None
+
+
 def chat_loop():
     """交互式对话循环"""
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
@@ -539,10 +473,17 @@ def chat_loop():
         print(f"❌ Neo4j 连接失败: {e}", file=sys.stderr)
         return
 
+    # 初始化 ChromaDB
+    chroma_client, chroma_collection = init_chroma_db()
+    if chroma_client:
+        print("✅ 已连接到向量数据库")
+    else:
+        print("⚠️ 向量数据库未启用，将仅使用图查询")
+
     conversation_history = []
 
     print("\n" + "=" * 60)
-    print("🤖 知识图谱对话查询系统")
+    print("🤖 GraphRAG 知识图谱对话查询系统")
     print("=" * 60)
     print("💡 提示：输入 'quit' 或 'exit' 退出，输入 'clear' 清空对话历史\n")
 
@@ -564,27 +505,42 @@ def chat_loop():
 
             print("\n🔍 正在分析问题...")
 
+            # 1. 提取实体
             entities = extract_entities(user_input)
-            graph_context = {k: list(v) for k, v in EMPTY_GRAPH_CONTEXT.items()}
+            if any(entities.values()):
+                print(f"📌 识别到实体: {json.dumps(entities, ensure_ascii=False)}")
 
-            # LLM 动态生成单条 Cypher 并执行
-            print("🔎 正在查询知识图谱（LLM 生成 Cypher）...")
-            llm_ctx = query_graph_context_with_llm(driver, user_input, entities=entities)
+            # 2. 图查询
+            print("🔎 正在查询知识图谱...")
+            graph_context = query_graph_context(driver, entities, raw_query=user_input)
+            llm_ctx = query_graph_context_with_llm(
+                driver, user_input, entities=entities
+            )
             if llm_ctx:
                 graph_context["dynamic_query_result"] = llm_ctx["dynamic_query_result"]
+                print("🔎 已使用 LLM 动态生成并执行 Cypher，结果已合并")
 
-            print("🔍 正在向量语义检索...")
-            vector_ctx = query_graph_context_by_vector(driver, user_input)
-            vector_list = vector_ctx.get("llm_cypher_results", [])
-            if vector_list:
-                graph_context.setdefault("llm_cypher_results", []).extend(vector_list)
+            # 3. 向量检索
+            vector_context = ""
+            if chroma_collection:
+                print("🔍 正在检索相关历史信息...")
+                vector_context = get_vector_context(
+                    user_input, chroma_client, chroma_collection
+                )
 
+            # 4. 生成答案
             print("💬 正在生成回答...")
-            answer = generate_answer(
-                user_input, graph_context, conversation_history
+            answer = generate_answer_with_graphrag(
+                user_input, graph_context, vector_context, conversation_history
             )
 
             print(f"\n📊 回答:\n{answer}\n")
+
+            # 5. 存储图查询结果到向量数据库
+            if chroma_collection and graph_context:
+                # 将结构化数据转换为JSON字符串存储
+                graph_context_str = json.dumps(graph_context, ensure_ascii=False)
+                store_graph_summary(chroma_collection, graph_context_str, user_input)
 
             # 保存到对话历史
             conversation_history.append({"role": "user", "content": user_input})
@@ -612,32 +568,35 @@ def single_query(query: str):
         print(f"❌ Neo4j 连接失败: {e}", file=sys.stderr)
         return
 
+    chroma_client, chroma_collection = init_chroma_db()
+
     print(f"🔍 问题: {query}\n")
     print("🔍 正在分析问题...")
 
     entities = extract_entities(query)
     print(f"📌 识别到实体: {json.dumps(entities, ensure_ascii=False)}\n")
 
-    graph_context = {k: list(v) for k, v in EMPTY_GRAPH_CONTEXT.items()}
-
-    # LLM 动态生成单条 Cypher 并执行，结果放入 dynamic_query_result
-    print("🔎 正在查询知识图谱（LLM 生成 Cypher）...")
+    print("🔎 正在查询知识图谱...")
+    graph_context = query_graph_context(driver, entities, raw_query=query)
     llm_ctx = query_graph_context_with_llm(driver, query, entities=entities)
     if llm_ctx:
         graph_context["dynamic_query_result"] = llm_ctx["dynamic_query_result"]
         print("🔎 已使用 LLM 动态生成并执行 Cypher，结果已合并")
 
-    # 3. 向量语义检索（可选补充）
-    print("🔍 正在向量语义检索...")
-    vector_ctx = query_graph_context_by_vector(driver, query)
-    vector_list = vector_ctx.get("llm_cypher_results", [])
-    if vector_list:
-        graph_context.setdefault("llm_cypher_results", []).extend(vector_list)
+    vector_context = ""
+    if chroma_collection:
+        print("🔍 正在检索相关历史信息...")
+        vector_context = get_vector_context(query, chroma_client, chroma_collection)
 
     print("💬 正在生成回答...")
-    answer = generate_answer(query, graph_context)
+    answer = generate_answer_with_graphrag(query, graph_context, vector_context)
 
     print(f"\n📊 回答:\n{answer}")
+
+    if chroma_collection and graph_context:
+        # 将结构化数据转换为JSON字符串存储
+        graph_context_str = json.dumps(graph_context, ensure_ascii=False)
+        store_graph_summary(chroma_collection, graph_context_str, query)
 
     driver.close()
 
@@ -648,13 +607,29 @@ def main():
     #     query = " ".join(sys.argv[1:])
     # else:
     #     chat_loop()
+
+    # 酶制剂来源/供体
+    # single_query("黑曲霉是什么酶的来源或者供体？")
+    # single_query("来源于米曲霉的酶制剂有哪些？")
+
+    # 香料与不得添加香料
     # single_query("较大婴儿和幼儿配方食品可以使用香料吗？可以使用什么香料？")
-    # single_query("菜罐头可以使用什么添加剂？")
-    # single_query("这种饮料里大概会用到哪些添加剂？")
-    # single_query("婴幼儿吃的零食在添加剂上大致有什么限制？")
-    single_query("普通家庭日常饮食中最常见的食品添加剂大概有哪些类型？")
-    # single_query("如果我不希望孩子摄入太多添加剂，大致需要注意哪些食品类别？")
-    # single_query("做烘焙、饮料、膨化食品时通常会涉及哪些主要的食品添加剂？")
+    single_query("哪些食品不得添加食品用香料？")
+    # single_query("天然香料和合成香料在乳制品里的使用规定是什么？")
+
+    # 食品添加剂与食品分类
+    # single_query("婴幼儿配方食品的食品添加剂有哪些？")
+    # single_query("山梨酸及其钾盐可以在哪些食品中使用？限量是多少？")
+    # single_query("CNS 号 08.001 是什么添加剂？能在哪些食品里用？")
+    # single_query("小麦粉（06.03.01）允许使用哪些着色剂？")
+
+    # 加工助剂
+    # single_query("C.1 加工助剂有哪些？使用范围有什么限制？")
+    # single_query("硅藻土作为加工助剂的使用范围是什么？")
+
+    # 综合
+    # single_query("碳酸氢钠的功能和在烘焙食品中的用量？")
+    # single_query("01.01 乳及乳制品下面有哪些子分类？")
 
 
 if __name__ == "__main__":

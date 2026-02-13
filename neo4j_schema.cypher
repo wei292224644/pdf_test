@@ -42,9 +42,9 @@ CREATE CONSTRAINT enzyme_code IF NOT EXISTS
 FOR (n:Enzyme) REQUIRE n.code IS UNIQUE;
 
 // EnzymeSource 酶制剂来源-供体配对：以 (enzyme_code, source_organism, donor_organism) 为唯一标识
-// 表示一个酶的一个来源及其对应的供体（供体可能为空）
+// 供体为空时存为空字符串 ''，约束中不能使用 COALESCE 等表达式，仅支持属性名
 CREATE CONSTRAINT enzyme_source_unique IF NOT EXISTS
-FOR (n:EnzymeSource) REQUIRE (n.enzyme_code, n.source_organism, COALESCE(n.donor_organism, '')) IS UNIQUE;
+FOR (n:EnzymeSource) REQUIRE (n.enzyme_code, n.source_organism, n.donor_organism) IS UNIQUE;
 
 // Organism 生物体（微生物、植物、动物等）：以 name_zh 和 name_en 组合为唯一标识
 CREATE CONSTRAINT organism_name_unique IF NOT EXISTS
