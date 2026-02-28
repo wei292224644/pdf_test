@@ -154,10 +154,6 @@ FOR ()-[r:PERMITTED_IN_GROUP]-() ON (r.exclude_group);
 //   FoodCategory
 //     code        (string)  必填，食品分类号，如 "01.01.03"
 //     name        (string)  食品名称
-//
-//   FoodCategory
-//     code        (string)  必填，食品分类号，如 "01.01.03"
-//     name        (string)  食品名称
 //     level       (int)     可选，层级深度（1=第一层如"01"，2=第二层如"01.02"，3=第三层如"01.02.03"）
 //     embedding   (list)    可选，Ollama 向量（code + name）
 //     层级关系：通过 HAS_SUBCATEGORY 关系表示，父分类指向子分类

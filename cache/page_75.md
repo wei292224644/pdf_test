@@ -1,5 +1,4 @@
-## 磷酸及磷酸盐
-磷酸、焦磷酸二氢二钠、焦磷酸钠、磷酸二氢钙、磷酸二氢钾、磷酸氢二铵、磷酸氢二钾、磷酸氢钙、磷酸三钙、磷酸三钾、磷酸三钠、多聚磷酸钠（包括六偏磷酸钠）、三聚磷酸钠、磷酸二氢钠、磷酸氢二钠、焦磷酸四钾、焦磷酸一氢三钠、聚偏磷酸钾、酸式焦磷酸钙  
+## 磷酸及磷酸盐[包括磷酸,焦磷酸二氢二钠,焦磷酸钠,磷酸二氢钙,磷酸二氢钾,磷酸氢二铵,磷酸氢二钾,磷酸氢钙,磷酸三钙,磷酸三钾,磷酸三钠,多聚磷酸钠(包括六偏磷酸钠),三聚磷酸钠,磷酸二氢钠,磷酸氢二钠,焦磷酸四钾,焦磷酸一氢三钠,聚偏磷酸钾,酸式焦磷酸钙]
 phosphoric acid, disodium dihydrogen diphosphate, tetrasodium pyrophosphate, monocalcium phosphate, monopotassium phosphate, diammonium phosphate, dipotassium phosphate, dicalcium phosphate, tricalcium phosphate, tripotassium phosphate, trisodium phosphate, sodium polyphosphates (including sodium hexametaphosphate), sodium tripolyphosphate, monosodium phosphate, disodium phosphate, tetrapotassium pyrophosphate, trisodium monohydrogen diphosphate, potassium polymetaphosphate, calcium dihydrogen pyrophosphate  
 **CNS号**：01.106, 15.008, 15.004, 15.007, 15.010, 06.008, 15.009, 06.006, 02.003, 340(ii), 341(ii), 341(iii), 340(iii), 339(iii), 452, 01.308, 15.001, 15.002, 15.003, 15.005, 451(i), 339(i), 339(ii), 450(v), 450(ii), 452(ii), 450, 15.006, 15.017, 15.013, 15.015, 15.016(vii)  
 **INS号**：338, 450(i), 450(iii), 341(i), 340(i), 342, 15.010, 06.008, 15.009, 06.006, 02.003, 340(ii), 341(ii), 341(iii), 340(iii), 339(iii), 452, 01.308, 15.001, 15.002, 15.003, 15.005, 451(i), 339(i), 339(ii), 450(v), 450(ii), 452(ii), 450, 15.006, 15.017, 15.013, 15.015, 15.016(vii)  

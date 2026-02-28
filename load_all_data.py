@@ -154,6 +154,7 @@ def main():
         ("load_no_flavoring_list_to_neo4j.py", "导入不得添加香料名单（表 B.1）", None),
         ("load_processing_aids_to_neo4j.py", "导入食品工业用加工助剂数据（表 C.1 和 C.2）", None),
         ("load_enzymes_to_neo4j.py", "导入食品用酶制剂数据（表 C.3）", None),
+        ("create_vector_indexes.py", "创建向量索引（embedding，用于语义检索）", None),
     ]
     
     failed_steps = []
@@ -194,6 +195,7 @@ def main():
         print("   - 不得添加香料的食品名单（B.1）")
         print("   - 食品工业用加工助剂（C.1、C.2）")
         print("   - 食品用酶制剂（C.3）")
+        print("   - 向量索引（embedding，用于语义检索）")
         print("\n💡 提示：")
         print("   - 可以使用 chat.py 进行查询测试")
         print("   - 在 Neo4j Browser 中查看数据: MATCH (n) RETURN n LIMIT 100")
