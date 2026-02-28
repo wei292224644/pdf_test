@@ -1,11 +1,10 @@
 import os
-from typing import Any
+from pathlib import Path
+from typing import Any, List
 
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
-
 import requests
-from typing import List
 
 load_dotenv()
 
@@ -15,7 +14,6 @@ NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
 
-print(OLLAMA_EMBED_URL, OLLAMA_EMBED_MODEL, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
 
 def get_driver() -> Any:
     """获取 Neo4j driver。调用方负责关闭。"""

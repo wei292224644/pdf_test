@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Any
 
-from ._common import get_driver
+from _common import get_driver
 
 
 def query_additives_for_category(category_code: str) -> str:

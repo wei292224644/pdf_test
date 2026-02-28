@@ -12,12 +12,14 @@
 """
 
 import os
+import subprocess
 import sys
 import json
 from pathlib import Path
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from deepagents.backends import FilesystemBackend
+from deepagents.backends import LocalShellBackend
 from dotenv import load_dotenv
 
 
@@ -29,6 +31,8 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).parent
 SCHEMA_FILE = BASE_DIR / "neo4j_schema.cypher"
+LOG_DIR = BASE_DIR / "logs"
+AGENT_LOG_FILE = LOG_DIR / "agent.log"
 
 # Neo4j 配置
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
@@ -126,16 +130,22 @@ def build_deep_agent(schema_text: str):
     system_prompt = f"""你是一个专门针对食品安全的专家助手。
 
 回答要求：
+1. 执行本 Skill 的脚本时，必须使用**相对于项目根的路径**（例如 python script/vector_search_food_category.py 或 python skills/gb2760-standard-query/scripts/vector_search_food_category.py），不要使用 /skills/ 开头的绝对路径。
 2. 回答用中文，结构清晰，可以使用编号列表列出结论或添加剂。
 3. 如果用户问题不属于任何 Skill 工具的适用范围，要明确说明当前能力不适用，并给出合理的解释。
 """
-    backend = FilesystemBackend(root_dir=base_dir,virtual_mode=True)
+    # Backend 工厂：框架会传入 ToolRuntime，但 FilesystemBackend/LocalShellBackend 的 root_dir 必须是 str/Path，不能传 rt
+    backend = lambda rt: LocalShellBackend(
+        root_dir=base_dir,
+        virtual_mode=True,
+        inherit_env=True,
+    )
     agent = create_deep_agent(
         model=llm,
         # system_prompt=system_prompt,
-        skills=["skills/"],  
-        debug=True,
+        skills=["./skills/"],
         backend=backend,
+        debug=True,
     )
     return agent
 
@@ -169,34 +179,104 @@ def print_records(records: List[Dict[str, Any]]) -> None:
         print(" | ".join(row))
 
 
+def _message_to_log_lines(msg: Any) -> tuple[str, list[str]]:
+    """把单条消息转为 (角色/类型标签, 内容行列表)，便于写入日志。"""
+    lines: list[str] = []
+    if isinstance(msg, dict):
+        role = msg.get("role") or msg.get("type") or "message"
+        content = msg.get("content", "")
+        if isinstance(content, list):
+            content = json.dumps(content, ensure_ascii=False, indent=2)
+        lines.append(str(content)[:50000])  # 单条过长则截断
+        return role, lines
+    # LangChain 消息对象
+    name = type(msg).__name__
+    if "Human" in name or (hasattr(msg, "type") and getattr(msg, "type", "") == "human"):
+        role = "USER"
+        content = getattr(msg, "content", "")
+        lines.append(str(content)[:50000])
+        return role, lines
+    if "AI" in name or (hasattr(msg, "type") and getattr(msg, "type", "") == "ai"):
+        role = "AI"
+        content = getattr(msg, "content", "") or ""
+        if content:
+            lines.append(str(content)[:50000])
+        tool_calls = getattr(msg, "tool_calls", None) or []
+        for tc in tool_calls:
+            if isinstance(tc, dict):
+                lines.append(f"  [tool_call] name={tc.get('name')} args={json.dumps(tc.get('args', {}), ensure_ascii=False)[:2000]}")
+            else:
+                lines.append(f"  [tool_call] {tc}")
+        return role, lines
+    if "Tool" in name or (hasattr(msg, "type") and getattr(msg, "type", "") == "tool"):
+        tool_name = getattr(msg, "name", "tool") or "tool"
+        role = f"TOOL({tool_name})"
+        content = getattr(msg, "content", "")
+        lines.append(str(content)[:10000])  # 工具结果可能很长
+        return role, lines
+    role = name
+    content = getattr(msg, "content", str(msg))
+    lines.append(str(content)[:50000])
+    return role, lines
+
+
+def _write_agent_log(query: str, result: dict | None, error: str | None, final_answer: Any) -> None:
+    """将本次 Agent 执行过程写入 logs/agent.log。"""
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(AGENT_LOG_FILE, "a", encoding="utf-8") as f:
+        ts = datetime.now().isoformat()
+        f.write("\n")
+        f.write("=" * 80 + "\n")
+        f.write(f"[{ts}] 问题: {query}\n")
+        f.write("=" * 80 + "\n")
+        if error:
+            f.write(f"[ERROR] {error}\n")
+        if result and "messages" in result:
+            msgs = result.get("messages") or []
+            for i, msg in enumerate(msgs):
+                role, content_lines = _message_to_log_lines(msg)
+                f.write(f"\n--- [{i+1}] {role} ---\n")
+                for line in content_lines:
+                    f.write(line + "\n")
+        f.write("\n--- 最终回答 ---\n")
+        f.write(str(final_answer) + "\n")
+        f.write("=" * 80 + "\n\n")
+
+
 def run_single_query(schema_text: str, query_text: str) -> None:
     """
     单次交互：使用 DeepAgents Agent 自动分析问题、调用 skills/gb2760 中声明的工具，并用中文回答。
+    执行过程会追加写入 logs/agent.log，便于分析。
     """
     print(f"❓ 问题: {query_text}\n")
 
+    result = None
+    output = None
+    err_msg = None
     try:
         agent = build_deep_agent(schema_text)
 
         # DeepAgents 返回的是一个 LangGraph 编译后的图，直接 invoke 即可
         result = agent.invoke({"messages": [{"role": "user", "content": query_text}]})
     except Exception as e:
+        err_msg = str(e)
         print(f"❌ Agent 执行失败: {e}", file=sys.stderr)
+        _write_agent_log(query_text, result=None, error=err_msg, final_answer=None)
         return
 
-    # create_deep_agent 返回的状态中通常包含 messages，
-    # 这里简单取最后一条 AI 消息的内容作为回答。
-    output = result
     try:
         if isinstance(result, dict) and "messages" in result:
             msgs = result["messages"]
             if isinstance(msgs, list) and msgs:
                 last = msgs[-1]
-                # LangChain 消息对象可能有 content 属性
                 if hasattr(last, "content"):
                     output = last.content
     except Exception:
         pass
+    if output is None:
+        output = result
+
+    _write_agent_log(query_text, result=result, error=None, final_answer=output)
     print("📊 回答：")
     print(output)
 

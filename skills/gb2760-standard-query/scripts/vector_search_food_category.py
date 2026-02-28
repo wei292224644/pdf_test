@@ -1,17 +1,18 @@
 import json
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-from ._common import get_driver, get_embedding
+from _common import get_driver, get_embedding
 
 
-def vector_search_chemical(keyword: str, top_k: int = 5) -> str:
+def vector_search_food_category(food_desc: str, top_k: int = 5) -> str:
     """
-    根据自然语言或名称关键词，使用 Neo4j 向量索引检索最相近的食品添加剂 Chemical。
+    根据自然语言的食品描述（如“菜罐头”“婴幼儿配方食品”等），
+    使用 Neo4j 向量索引 foodcategory_embedding 检索最相近的食品分类 FoodCategory。
 
     返回 JSON 字符串，内容为数组：
-    [{ "id": ..., "name_zh": ..., "name_en": ..., "score": ... }, ...]
+    [{ "code": ..., "name": ..., "score": ... }, ...]
     """
-    emb = get_embedding(keyword)
+    emb = get_embedding(food_desc)
     if not emb:
         return json.dumps([], ensure_ascii=False)
 
@@ -21,9 +22,9 @@ def vector_search_chemical(keyword: str, top_k: int = 5) -> str:
         with driver.session() as session:
             r = session.run(
                 """
-                CALL db.index.vector.queryNodes('chemical_embedding', $k, $vector)
+                CALL db.index.vector.queryNodes('foodcategory_embedding', $k, $vector)
                 YIELD node, score
-                RETURN node.id AS id, node.name_zh AS name_zh, node.name_en AS name_en, score
+                RETURN node.code AS code, node.name AS name, score
                 ORDER BY score DESC
                 LIMIT $k
                 """,
@@ -32,9 +33,8 @@ def vector_search_chemical(keyword: str, top_k: int = 5) -> str:
             for rec in r:
                 results.append(
                     {
-                        "id": rec.get("id"),
-                        "name_zh": rec.get("name_zh"),
-                        "name_en": rec.get("name_en"),
+                        "code": rec.get("code"),
+                        "name": rec.get("name"),
                         "score": rec.get("score"),
                     }
                 )
@@ -49,11 +49,11 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(
-        description="使用向量索引检索最相近的食品添加剂（Chemical）。"
+        description="根据自然语言食品描述，使用向量索引检索最相近的食品分类（FoodCategory）。"
     )
     parser.add_argument(
-        "keyword",
-        help="检索关键词或描述，例如 '山梨酸' 或 '防腐剂 山梨酸'",
+        "food_desc",
+        help="食品描述，例如 '菜罐头'、'婴幼儿配方食品'",
     )
     parser.add_argument(
         "--top-k",
@@ -63,6 +63,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    output = vector_search_chemical(args.keyword, top_k=args.top_k)
+    output = vector_search_food_category(args.food_desc, top_k=args.top_k)
     sys.stdout.write(output)
-

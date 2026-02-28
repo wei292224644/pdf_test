@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List
 
-from ._common import get_driver, get_embedding
+from _common import get_driver, get_embedding
 
 
 def vector_search_flavoring(keyword: str, top_k: int = 5) -> str:

@@ -1,36 +1,25 @@
 ---
-name: gb2760_standard_query
+name: gb2760-standard-query
 description: "当用户提出与 GB 2760《食品安全国家标准 食品添加剂使用标准》相关的问题时使用本 Skill，例如：某类食品可以使用哪些添加剂/香料/加工助剂/酶制剂、某个添加剂/香料/加工助剂/酶制剂可以用于哪些食品分类、查询“不得添加食品用香料、香精的食品名单”及其例外情况。"
 license: 专有，详见项目 LICENSE
 ---
 
 ## 概述
-
-本 Skill 基于 Neo4j 中构建的 GB 2760 食品添加剂知识图谱以及向量索引，封装了 13 个与图谱交互的基础工具。这些工具覆盖：
-
-- 食品分类（FoodCategory）的向量检索
-- 食品添加剂（Chemical）、食品用香料（Flavoring）、加工助剂（ProcessingAid）、酶制剂（Enzyme）的向量检索
-- 某个食品分类允许使用的添加剂/香料/加工助剂的结构化查询
-- 某个添加剂/香料在不同食品分类中的使用范围查询
-- 加工助剂的类型、功能和使用范围查询
-- 酶制剂的来源/供体信息查询
-- “不得添加食品用香料、香精的食品名单”的结构化获取
-
-本文件仅描述每个工具本身的输入、输出和语义，不规定具体业务场景或调用顺序。
+用户要查询GB2760《食品安全国家标准 GB 2760-2024 食品添加剂使用标准》中的食品添加剂、食品用香料、食品工业用加工助剂、酶制剂等信息时使用本 Skill。
 
 ## 环境变量（Env 参数）
 
-所有工具在运行时依赖以下环境变量（通常通过项目根目录的 `.env` 文件配置），如果未显式配置，将使用括号中的默认值：
+所有工具在运行时依赖以下环境变量，仅从环境变量中读取，不在代码或配置中硬编码。
 
-- **NEO4J_URI**：Neo4j 数据库连接地址（默认：`bolt://localhost:7687`）
-- **NEO4J_USER**：Neo4j 数据库用户名（默认：`neo4j`）
-- **NEO4J_PASSWORD**：Neo4j 数据库密码（默认：`password`）
-- **OLLAMA_EMBED_URL**：Ollama Embedding 接口地址，用于生成向量（默认：`http://localhost:11434/api/embed`）
-- **OLLAMA_EMBED_MODEL**：Ollama Embedding 模型名称（默认：`qwen3-embedding:4b`）
+|环境变量|描述|
+|--|--|
+|NEO4J_URI|Neo4j 数据库连接地址|
+|NEO4J_USER|Neo4j 数据库用户名|
+|NEO4J_PASSWORD|Neo4j 数据库密码|
+|OLLAMA_EMBED_URL|Ollama Embedding 接口地址|
+|OLLAMA_EMBED_MODEL|Ollama Embedding 模型名称|
 
-在生产环境中，建议显式设置上述环境变量，以确保连接正确的 Neo4j 实例和向量模型服务。
-
-## 工具说明（Tools）
+## 脚本说明（Scripts）
 
 ### `vector_search_food_category`
 
@@ -49,10 +38,10 @@ license: 专有，详见项目 LICENSE
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/vector_search_food_category.py "菜罐头" --top-k 5
+python skills/gb2760-standard-query/scripts/vector_search_food_category.py "菜罐头" --top-k 5
 ```
 
 ---
@@ -79,10 +68,10 @@ python scripts/vector_search_food_category.py "菜罐头" --top-k 5
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/query_additives_for_category.py 04.02.02.04
+python skills/gb2760-standard-query/scripts/query_additives_for_category.py 04.02.02.04
 ```
 
 ---
@@ -105,10 +94,10 @@ python scripts/query_additives_for_category.py 04.02.02.04
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/vector_search_chemical.py "山梨酸" --top-k 5
+python skills/gb2760-standard-query/scripts/vector_search_chemical.py "山梨酸" --top-k 5
 ```
 
 ---
@@ -132,10 +121,10 @@ python scripts/vector_search_chemical.py "山梨酸" --top-k 5
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/vector_search_flavoring.py "香兰素" --top-k 5
+python skills/gb2760-standard-query/scripts/vector_search_flavoring.py "香兰素" --top-k 5
 ```
 
 ---
@@ -159,10 +148,10 @@ python scripts/vector_search_flavoring.py "香兰素" --top-k 5
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/vector_search_processing_aid.py "萃取溶剂" --top-k 5
+python skills/gb2760-standard-query/scripts/vector_search_processing_aid.py "萃取溶剂" --top-k 5
 ```
 
 ---
@@ -185,10 +174,10 @@ python scripts/vector_search_processing_aid.py "萃取溶剂" --top-k 5
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/vector_search_enzyme.py "α-淀粉酶" --top-k 5
+python skills/gb2760-standard-query/scripts/vector_search_enzyme.py "α-淀粉酶" --top-k 5
 ```
 
 ---
@@ -217,10 +206,10 @@ python scripts/vector_search_enzyme.py "α-淀粉酶" --top-k 5
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/get_flavorings_for_food_category.py 04.02.02.04
+python skills/gb2760-standard-query/scripts/get_flavorings_for_food_category.py 04.02.02.04
 ```
 
 ---
@@ -247,10 +236,10 @@ python scripts/get_flavorings_for_food_category.py 04.02.02.04
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/get_processing_aids_for_food_category.py 04.02.02.04
+python skills/gb2760-standard-query/scripts/get_processing_aids_for_food_category.py 04.02.02.04
 ```
 
 ---
@@ -277,10 +266,10 @@ python scripts/get_processing_aids_for_food_category.py 04.02.02.04
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/get_food_categories_for_additive.py 01.104
+python skills/gb2760-standard-query/scripts/get_food_categories_for_additive.py 01.104
 ```
 
 ---
@@ -309,10 +298,10 @@ python scripts/get_food_categories_for_additive.py 01.104
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/get_food_categories_for_flavoring.py S0172
+python skills/gb2760-standard-query/scripts/get_food_categories_for_flavoring.py S0172
 ```
 
 ---
@@ -339,10 +328,10 @@ python scripts/get_food_categories_for_flavoring.py S0172
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/get_usage_for_processing_aid.py PA001
+python skills/gb2760-standard-query/scripts/get_usage_for_processing_aid.py PA001
 ```
 
 ---
@@ -368,10 +357,10 @@ python scripts/get_usage_for_processing_aid.py PA001
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
-python scripts/get_sources_for_enzyme.py ENZ001
+python skills/gb2760-standard-query/scripts/get_sources_for_enzyme.py ENZ001
 ```
 
 ---
@@ -392,7 +381,7 @@ python scripts/get_sources_for_enzyme.py ENZ001
 ]
 ```
 
-**CLI 调用示例**
+**调用示例**
 
 ```bash
 python scripts/list_no_flavoring_categories.py

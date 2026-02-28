@@ -1,7 +1,9 @@
 import json
+from pathlib import Path
+import sys
 from typing import Any, Dict, List
 
-from ._common import get_driver
+from _common import get_driver
 
 
 def get_sources_for_enzyme(enzyme_code_or_name: str) -> str:
