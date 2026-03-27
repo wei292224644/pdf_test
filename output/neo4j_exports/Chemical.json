@@ -1,0 +1,1392 @@
+[
+  {
+    "name_zh": "L(+)-酒石酸、dl-酒石酸",
+    "id": "01.111",
+    "name_en": "l(+)-tartaric acid, dl-tartaric acid"
+  },
+  {
+    "name_zh": "乳酸脂肪酸甘油酯",
+    "id": "10.031",
+    "name_en": "lactic and fatty acid esters of glycerol"
+  },
+  {
+    "name_zh": "乳糖醇（又名 4-β-D 吡喃半乳糖-D-山梨醇）",
+    "id": "19.014",
+    "name_en": "lactitol"
+  },
+  {
+    "name_zh": "乳糖酶",
+    "id": "00.023",
+    "name_en": "lactase"
+  },
+  {
+    "name_zh": "三氯蔗糖（又名蔗糖素）",
+    "id": "19.016",
+    "name_en": "sucralose"
+  },
+  {
+    "name_zh": "三赞胶",
+    "id": "20.047",
+    "name_en": "sanzan gum"
+  },
+  {
+    "name_zh": "桑椹红",
+    "id": "08.129",
+    "name_en": "mulberry red"
+  },
+  {
+    "name_zh": "沙蒿胶",
+    "id": "20.037",
+    "name_en": "artemisia gum (sa-hao seed gum)"
+  },
+  {
+    "name_zh": "沙棘黄",
+    "id": "08.124",
+    "name_en": "*hippophae rhamnoides yellow*"
+  },
+  {
+    "name_zh": "山梨酸及其钾盐（包括山梨酸、山梨酸钾）",
+    "id": "17.003",
+    "name_en": "sorbic acid, potassium sorbate"
+  },
+  {
+    "name_zh": "山梨糖醇、山梨糖醇液",
+    "id": "19.006",
+    "name_en": "sorbitol and sorbitol syrup"
+  },
+  {
+    "name_zh": "双乙酸钠（又名二醋酸钠）",
+    "id": "17.013",
+    "name_en": "sodium diacetate"
+  },
+  {
+    "name_zh": "双乙酰酒石酸单双甘油酯（简称\"DATEM\"）",
+    "id": "10.010",
+    "name_en": "diacetyletartaric acid esters of mono (di)glycerides"
+  },
+  {
+    "name_zh": "L-苹果酸",
+    "id": "01.104",
+    "name_en": "L-malic acid"
+  },
+  {
+    "name_zh": "L-苹果酸钠",
+    "id": "01.315",
+    "name_en": "L-(−)-malic acid disodium salt"
+  },
+  {
+    "name_zh": "α-环状糊精",
+    "id": "18.011",
+    "name_en": "alpha-cyclodextrin"
+  },
+  {
+    "name_zh": "β-阿朴-8'-胡萝卜素醛",
+    "id": "08.018",
+    "name_en": "beta-apo-8'-carotenal"
+  },
+  {
+    "name_zh": "司盘类",
+    "id": "10.024",
+    "name_en": "Sorbitan esters of fatty acids"
+  },
+  {
+    "name_zh": "松香季戊四醇酯",
+    "id": "14.005",
+    "name_en": "pentaerythritol ester of wood rosin"
+  },
+  {
+    "name_zh": "酸处理淀粉",
+    "id": "20.032",
+    "name_en": "acid treated starch"
+  },
+  {
+    "name_zh": "酸性红（又名偶氮玉红）",
+    "id": "08.013",
+    "name_en": "carmoisine (azorubine)"
+  },
+  {
+    "name_zh": "羧甲基淀粉钠",
+    "id": "20.012",
+    "name_en": "sodium carboxymethyl starch"
+  },
+  {
+    "name_zh": "羧甲基纤维素钠",
+    "id": "20.003",
+    "name_en": "sodium carboxymethylcellulose"
+  },
+  {
+    "name_zh": "索马甜",
+    "id": "19.020",
+    "name_en": "thaumatin"
+  },
+  {
+    "name_zh": "碳酸铵",
+    "id": "06.009",
+    "name_en": "ammonium carbonate"
+  },
+  {
+    "name_zh": "碳酸钙（包括轻质碳酸钙、重质碳酸钙）",
+    "id": "13.006",
+    "name_en": "calcium carbonate (light and heavy)"
+  },
+  {
+    "name_zh": "碳酸钾",
+    "id": "01.301",
+    "name_en": "potassium carbonate"
+  },
+  {
+    "name_zh": "碳酸镁（包括轻质碳酸镁、重质碳酸镁）",
+    "id": "13.005",
+    "name_en": "magnesium carbonate"
+  },
+  {
+    "name_zh": "碳酸钠",
+    "id": "01.302",
+    "name_en": "sodium carbonate"
+  },
+  {
+    "name_zh": "碳酸氢铵",
+    "id": "06.002",
+    "name_en": "ammonium hydrogen carbonate"
+  },
+  {
+    "name_zh": "碳酸氢钾",
+    "id": "01.307",
+    "name_en": "potassium hydrogen carbonate"
+  },
+  {
+    "name_zh": "碳酸氢钠",
+    "id": "06.001",
+    "name_en": "sodium hydrogen carbonate"
+  },
+  {
+    "name_zh": "碳酸氢三钠（又名倍半碳酸钠）",
+    "id": "01.305",
+    "name_en": "sodium sesquicarbonate"
+  },
+  {
+    "name_zh": "糖精钠",
+    "id": "19.001",
+    "name_en": "sodium saccharin"
+  },
+  {
+    "name_zh": "特丁基对苯二酚（简称\"TBHQ\"）",
+    "id": "04.007",
+    "name_en": "tertiary butylhydroquinone (TBHQ)"
+  },
+  {
+    "name_zh": "天门冬酰苯丙氨酸甲酯乙酰磺胺酸",
+    "id": "19.021",
+    "name_en": "aspartame-acesulfame salt"
+  },
+  {
+    "name_zh": "天然胡萝卜素",
+    "id": "08.147",
+    "name_en": "natural carotene"
+  },
+  {
+    "name_zh": "天然苋菜红",
+    "id": "08.130",
+    "name_en": "natural amaranthus red"
+  },
+  {
+    "name_zh": "田菁胶",
+    "id": "20.021",
+    "name_en": "sesbaniagum"
+  },
+  {
+    "name_zh": "甜菜红",
+    "id": "08.101",
+    "name_en": "beet red"
+  },
+  {
+    "name_zh": "甜菊糖苷",
+    "id": "19.008",
+    "name_en": "steviol glycosides"
+  },
+  {
+    "name_zh": "甜蜜素（又名环己基氨基磺酸钠）、环己基氨基磺酸钙",
+    "id": "19.002",
+    "name_en": "sodium cyclamate, calcium cyclamate"
+  },
+  {
+    "name_zh": "β-胡萝卜素",
+    "id": "08.010",
+    "name_en": "beta-carotene synthetic, beta-carotene, Blakeslea trispora, beta-carotene, algal"
+  },
+  {
+    "name_zh": "吐温类",
+    "id": "10.025",
+    "name_en": "polysorbates"
+  },
+  {
+    "name_zh": "脱氢乙酸及其钠盐（包括脱氢乙酸、脱氢乙酸钠）",
+    "id": "17.009(i)",
+    "name_en": "dehydroacetic acid, sodium dehydroacetate"
+  },
+  {
+    "name_zh": "脱乙酰甲壳素（又名壳聚糖）",
+    "id": "20.026",
+    "name_en": "deacetylated chitin (chitosan)"
+  },
+  {
+    "name_zh": "微晶纤维素",
+    "id": "02.005",
+    "name_en": "microcrystalline cellulose"
+  },
+  {
+    "name_zh": "维生素E（包括dl-α-生育酚、d-α-生育酚、混合生育酚浓缩物）",
+    "id": "04.016",
+    "name_en": "vitamin E (dl-α-tocopherol, d-α-tocopherol, mixed tocopherol concentrate)"
+  },
+  {
+    "name_zh": "稳定态二氧化氯",
+    "id": "17.028",
+    "name_en": "stabilized chlorine dioxide"
+  },
+  {
+    "name_zh": "纤维素",
+    "id": "02.012",
+    "name_en": "cellulose"
+  },
+  {
+    "name_zh": "苋菜红及其铝色淀（包括苋菜红、苋菜红铝）",
+    "id": "08.001",
+    "name_en": "amaranth, amaranth aluminum lake"
+  },
+  {
+    "name_zh": "橡子壳棕",
+    "id": "08.126",
+    "name_en": "Acorn Shell Brown"
+  },
+  {
+    "name_zh": "硝酸钠、硝酸钾",
+    "id": "09.001",
+    "name_en": "Sodium Nitrate, Potassium Nitrate"
+  },
+  {
+    "name_zh": "辛,癸酸甘油酯",
+    "id": "10.018",
+    "name_en": "octylanddecylglycerate"
+  },
+  {
+    "name_zh": "辛烯基琥珀酸淀粉钠",
+    "id": "10.030",
+    "name_en": "starch sodium octenylsuccinate"
+  },
+  {
+    "name_zh": "新红及其铝色淀（包括新红、新红铝色淀）",
+    "id": "08.004",
+    "name_en": "new red, new red aluminum lake"
+  },
+  {
+    "name_zh": "亚麻籽胶（又名富兰克胶）",
+    "id": "20.020",
+    "name_en": "linseed gum"
+  },
+  {
+    "name_zh": "亚铁氰化钾、亚铁氰化钠",
+    "id": "02.001",
+    "name_en": "potassium ferrocyanide, sodium ferrocyanide"
+  },
+  {
+    "name_zh": "亚硝酸钠、亚硝酸钾",
+    "id": "09.002",
+    "name_en": "sodium nitrite, potassium nitrite"
+  },
+  {
+    "name_zh": "胭脂虫红及其铝色淀（包括胭脂虫红、胭脂虫红铝色淀）",
+    "id": "08.145",
+    "name_en": "carmine/cochineal, carmine/cochineal aluminum lake"
+  },
+  {
+    "name_zh": "胭脂红及其铝色淀（包括胭脂红、胭脂红铝色淀）",
+    "id": "08.002",
+    "name_en": "ponceau 4R, ponceau 4R aluminum lake"
+  },
+  {
+    "name_zh": "胭脂树橙（又名红木素、降红木素）",
+    "id": "08.144",
+    "name_en": "annatto extracts"
+  },
+  {
+    "name_zh": "盐酸",
+    "id": "01.108",
+    "name_en": "hydrochloric acid"
+  },
+  {
+    "name_zh": "杨梅红",
+    "id": "08.149",
+    "name_en": "myricared"
+  },
+  {
+    "name_zh": "氧化淀粉",
+    "id": "20.030",
+    "name_en": "oxidized starch"
+  },
+  {
+    "name_zh": "氧化羟丙基淀粉",
+    "id": "20.033",
+    "name_en": "oxidized hydroxypropyl starch"
+  },
+  {
+    "name_zh": "氧化铁黑、氧化铁红",
+    "id": "08.014",
+    "name_en": "iron oxide black, iron oxide red"
+  },
+  {
+    "name_zh": "叶黄素",
+    "id": "08.146",
+    "name_en": "lutein"
+  },
+  {
+    "name_zh": "叶绿素铜",
+    "id": "08.153",
+    "name_en": "chlorophyllin copper"
+  },
+  {
+    "name_zh": "叶绿素铜钠盐、叶绿素铜钾盐",
+    "id": "08.009",
+    "name_en": "chlorophyllin copper complex, sodium and potassium salts"
+  },
+  {
+    "name_zh": "液体二氧化碳（煤气化法）",
+    "id": "17.034",
+    "name_en": "carbon dioxide"
+  },
+  {
+    "name_zh": "乙二胺四乙酸二钠",
+    "id": "18.005",
+    "name_en": "disodium ethylenediamine-tetra-acetate"
+  },
+  {
+    "name_zh": "乙二胺四乙酸二钠钙",
+    "id": "04.020",
+    "name_en": "calcium disodium ethylenediamine-tetra-acetate"
+  },
+  {
+    "name_zh": "乙酸钠（又名醋酸钠）",
+    "id": "00.013",
+    "name_en": "sodium acetate"
+  },
+  {
+    "name_zh": "乙酰化单、双甘油脂肪酸酯",
+    "id": "10.027",
+    "name_en": "acetylated mono- and diglyceride (acetic and fatty acids esters of glycerol)"
+  },
+  {
+    "name_zh": "乙酰化二淀粉磷酸酯",
+    "id": "20.015",
+    "name_en": "acetylated distarch phosphate"
+  },
+  {
+    "name_zh": "乙酰化双淀粉己二酸酯",
+    "id": "20.031",
+    "name_en": "acetylated distarch adipate"
+  },
+  {
+    "name_zh": "乙氧基喹",
+    "id": "17.010",
+    "name_en": "ethoxyquin"
+  },
+  {
+    "name_zh": "异构化乳糖",
+    "id": "00.003",
+    "name_en": "isomerized lactose"
+  },
+  {
+    "name_zh": "异麦芽酮糖",
+    "id": "19.003",
+    "name_en": "isomaltulose (palatinose)"
+  },
+  {
+    "name_zh": "硬脂酸（又名十八烷酸）",
+    "id": "14.009",
+    "name_en": "stearic acid (octadecanoic acid)"
+  },
+  {
+    "name_zh": "硬脂酸钙",
+    "id": "10.039",
+    "name_en": "calcium stearate"
+  },
+  {
+    "name_zh": "硬脂酸钾",
+    "id": "10.028",
+    "name_en": "potassium stearate"
+  },
+  {
+    "name_zh": "硬脂酸镁",
+    "id": "02.006",
+    "name_en": "magnesium stearate"
+  },
+  {
+    "name_zh": "硬脂酰乳酸钠、硬脂酰乳酸钙",
+    "id": "10.011",
+    "name_en": "sodium stearoyl lactylate, calcium stearoyl lactylate"
+  },
+  {
+    "name_zh": "诱惑红及其铝色淀（包括诱惑红、诱惑红铝色淀）",
+    "id": "08.012",
+    "name_en": "allura red, allura red aluminum lake"
+  },
+  {
+    "name_zh": "玉米黄",
+    "id": "08.116",
+    "name_en": "corn yellow"
+  },
+  {
+    "name_zh": "越橘红",
+    "id": "08.105",
+    "name_en": "cowberry red"
+  },
+  {
+    "name_zh": "藻蓝",
+    "id": "08.137",
+    "name_en": "spirulina blue"
+  },
+  {
+    "name_zh": "皂荚糖胶",
+    "id": "20.029",
+    "name_en": "Gleditsia sinensis gum"
+  },
+  {
+    "name_zh": "皂树皮提取物",
+    "id": "10.042",
+    "name_en": "Quillaia extract"
+  },
+  {
+    "name_zh": "蔗糖脂肪酸酯",
+    "id": "10.001",
+    "name_en": "sucrose esters of fatty acids"
+  },
+  {
+    "name_zh": "栀子黄",
+    "id": "08.112",
+    "name_en": "gardenia yellow"
+  },
+  {
+    "name_zh": "栀子蓝",
+    "id": "08.123",
+    "name_en": "gardenia blue"
+  },
+  {
+    "name_zh": "植酸（又名肌醇六磷酸）、植酸钠",
+    "id": "04.006",
+    "name_en": "phytic acid (inositol hexaphosphoric acid), sodium phytate"
+  },
+  {
+    "name_zh": "植物炭黑",
+    "id": "08.138",
+    "name_en": "vegetable carbon"
+  },
+  {
+    "name_zh": "竹叶抗氧化物",
+    "id": "04.019",
+    "name_en": "antioxidant of bamboo leaves"
+  },
+  {
+    "name_zh": "紫甘薯色素",
+    "id": "08.154",
+    "name_en": "purple sweet potato colour"
+  },
+  {
+    "name_zh": "紫草红",
+    "id": "08.140",
+    "name_en": "gromwell red"
+  },
+  {
+    "name_zh": "紫胶（又名虫胶）",
+    "id": "14.001",
+    "name_en": "shellac"
+  },
+  {
+    "name_zh": "紫胶红（又名虫胶红）",
+    "id": "08.104",
+    "name_en": "lac dyered（lac red）"
+  },
+  {
+    "name_zh": "β-环状糊精",
+    "id": "20.024",
+    "name_en": "beta-cyclodextrin"
+  },
+  {
+    "name_zh": "γ-环状糊精",
+    "id": "18.012",
+    "name_en": "gamma-cyclodextrin"
+  },
+  {
+    "name_zh": "ε-聚赖氨酸",
+    "id": "17.037",
+    "name_en": "epsilon-polylysine"
+  },
+  {
+    "name_zh": "ε-聚赖氨酸盐酸盐",
+    "id": "17.038",
+    "name_en": "epsilon-polylysine hydrochloride"
+  },
+  {
+    "name_zh": "阿拉伯胶",
+    "id": "20.008",
+    "name_en": "arabic gum"
+  },
+  {
+    "name_zh": "阿力甜（又名 L-α-天冬氨酰-N-(2,2,4,4-四甲基-3-硫化三亚甲基)-D-丙氨酰胺）",
+    "id": "19.013",
+    "name_en": "alitame"
+  },
+  {
+    "name_zh": "阿斯巴甜（又名天门冬酰苯丙氨酸甲酯）",
+    "id": "19.004",
+    "name_en": "aspartame"
+  },
+  {
+    "name_zh": "爱德万甜（又名 N-{N-[3-(3-羟基-4-甲氧苯基)丙基]-L-α-天冬氨酰}-L-苯丙氨酸甲酯）",
+    "id": "19.026",
+    "name_en": "advantame (N-[N-[3-(3-hydroxy-4-methoxyphenyl)propyl]-L-alpha-aspartyl]-L-phenylalanine 1-methylester)"
+  },
+  {
+    "name_zh": "安赛蜜（又名乙酰磺胺酸钾）",
+    "id": "19.011",
+    "name_en": "acesulfame potassium"
+  },
+  {
+    "name_zh": "氨基乙酸（又名甘氨酸）",
+    "id": "12.007",
+    "name_en": "glycine"
+  },
+  {
+    "name_zh": "铵磷脂",
+    "id": "10.033",
+    "name_en": "ammonium phosphatide"
+  },
+  {
+    "name_zh": "巴西棕榈蜡",
+    "id": "14.008",
+    "name_en": "carnauba wax"
+  },
+  {
+    "name_zh": "白油（又名液体石蜡）",
+    "id": "14.003",
+    "name_en": "mineral oil (liquid paraffin)"
+  },
+  {
+    "name_zh": "半乳甘露聚糖",
+    "id": "00.014",
+    "name_en": "galactomannan"
+  },
+  {
+    "name_zh": "苯甲酸及其钠盐（包括苯甲酸、苯甲酸钠）",
+    "id": "17.001",
+    "name_en": "benzoic acid, sodium benzoate"
+  },
+  {
+    "name_zh": "冰结构蛋白",
+    "id": "00.020",
+    "name_en": "ice structuring protein"
+  },
+  {
+    "name_zh": "冰乙酸（低压羰基化法）",
+    "id": "01.112",
+    "name_en": "acetic acid"
+  },
+  {
+    "name_zh": "冰乙酸（又名冰醋酸）",
+    "id": "01.107",
+    "name_en": "acetic acid"
+  },
+  {
+    "name_zh": "丙二醇",
+    "id": "18.004",
+    "name_en": "propylene glycol"
+  },
+  {
+    "name_zh": "丙二醇脂肪酸酯",
+    "id": "10.020",
+    "name_en": "propylene glycol esters of fatty acids"
+  },
+  {
+    "name_zh": "茶多酚（又名维多酚，简称“TP”）使用规定",
+    "id": "11.007",
+    "name_en": "tea polyphenols (TP)"
+  },
+  {
+    "name_zh": "茶多酚棕榈酸酯",
+    "id": "04.021",
+    "name_en": "teapolyphenolpalmitate"
+  },
+  {
+    "name_zh": "茶黄素",
+    "id": "04.023",
+    "name_en": "theaflavins"
+  },
+  {
+    "name_zh": "赤藓红及其铝色淀（包括赤藓红、赤藓红铝色淀）",
+    "id": "08.003",
+    "name_en": "erythrosine,erythrosinealuminumlake"
+  },
+  {
+    "name_zh": "淀粉磷酸酯钠(又名淀粉磷酸酯,磷酸酯淀粉,单淀粉磷酸酯)",
+    "id": "20.013",
+    "name_en": "sodium starch phosphate (monostarch phosphate)"
+  },
+  {
+    "name_zh": "靛蓝及其铝色淀(包括靛蓝,靛蓝铝色淀)",
+    "id": "08.008",
+    "name_en": "indigotine, indigotine aluminum lake"
+  },
+  {
+    "name_zh": "丁基羟基茴香醚（简称“BHA”）",
+    "id": "04.001",
+    "name_en": "butylated hydroxyanisole (BHA)"
+  },
+  {
+    "name_zh": "对羟基苯甲酸酯类及其钠盐(包括对羟基苯甲酸甲酯钠,对羟基苯甲酸乙酯,对羟基苯甲酸乙酯钠)",
+    "id": "17.032",
+    "name_en": "p-hydroxybenzoates and its salts（sodium methyl p-hydroxybenzoate, ethyl p-hydroxybenzoate, sodium ethyl p-hydroxybenzoate）"
+  },
+  {
+    "name_zh": "二丁基羟基甲苯（简称“BHT”）",
+    "id": "04.002",
+    "name_en": "butylated hydroxytoluene (BHT)"
+  },
+  {
+    "name_zh": "二甲基二碳酸盐（又名维果灵）",
+    "id": "17.033",
+    "name_en": "dimethyldicarbonate"
+  },
+  {
+    "name_zh": "二氧化硅",
+    "id": "02.004",
+    "name_en": "silicon dioxide"
+  },
+  {
+    "name_zh": "二氧化硫及亚硫酸盐（包括二氧化硫、焦亚硫酸钾、焦亚硫酸钠、亚硫酸钠、亚硫酸氢钠、低亚硫酸钠）",
+    "id": "05.001",
+    "name_en": "sulfur dioxide, potassium metabisulphite, sodium metabisulphite, sodium sulfite, sodium hydrogen sulfite, sodium hyposulfite"
+  },
+  {
+    "name_zh": "二氧化钛",
+    "id": "08.011",
+    "name_en": "titanium dioxide"
+  },
+  {
+    "name_zh": "二氧化碳（carbon dioxide）",
+    "id": "17.014",
+    "name_en": "carbon dioxide"
+  },
+  {
+    "name_zh": "番茄红",
+    "id": "08.150",
+    "name_en": "tomatored"
+  },
+  {
+    "name_zh": "番茄红素",
+    "id": "08.017",
+    "name_en": "lycopene, synthetic; lycopene, Blakeslea trispora"
+  },
+  {
+    "name_zh": "蜂蜡",
+    "id": "14.013",
+    "name_en": "beeswax"
+  },
+  {
+    "name_zh": "富马酸",
+    "id": "01.110",
+    "name_en": "fumaric acid"
+  },
+  {
+    "name_zh": "富马酸一钠",
+    "id": "01.311",
+    "name_en": "monosodium fumarate"
+  },
+  {
+    "name_zh": "改性大豆磷脂",
+    "id": "10.019",
+    "name_en": "modified soybean phospholipid"
+  },
+  {
+    "name_zh": "甘草抗氧化物",
+    "id": "04.008",
+    "name_en": "antioxidant of glycyrrhiza"
+  },
+  {
+    "name_zh": "甘草酸盐（包括甘草酸铵、甘草酸一钾、甘草酸三钾）",
+    "id": "19.012",
+    "name_en": "ammonium glycyrrhizinate, monopotassium and tripotassium glycyrrhizinate"
+  },
+  {
+    "name_zh": "甘油（又名丙三醇）",
+    "id": "15.014",
+    "name_en": "glycerine（glycerol）"
+  },
+  {
+    "name_zh": "柑橘黄",
+    "id": "08.143",
+    "name_en": "orange yellow"
+  },
+  {
+    "name_zh": "高粱红",
+    "id": "08.115",
+    "name_en": "sorghum red"
+  },
+  {
+    "name_zh": "高锰酸钾",
+    "id": "00.001",
+    "name_en": "potassium permanganate"
+  },
+  {
+    "name_zh": "谷氨酸钠",
+    "id": "12.001",
+    "name_en": "monosodium glutamate"
+  },
+  {
+    "name_zh": "谷氨酰胺转氨酶",
+    "id": "18.013",
+    "name_en": "glutamine transaminase"
+  },
+  {
+    "name_zh": "瓜尔胶",
+    "id": "20.025",
+    "name_en": "guar gum"
+  },
+  {
+    "name_zh": "硅酸钙",
+    "id": "02.009",
+    "name_en": "calcium silicate"
+  },
+  {
+    "name_zh": "果胶",
+    "id": "20.006",
+    "name_en": "pectins"
+  },
+  {
+    "name_zh": "海藻酸丙二醇酯",
+    "id": "20.010",
+    "name_en": "propylene glycol alginate"
+  },
+  {
+    "name_zh": "海藻酸钙（又名褐藻酸钙）",
+    "id": "20.046",
+    "name_en": "calcium alginate"
+  },
+  {
+    "name_zh": "海藻酸钾（又名褐藻酸钾）",
+    "id": "20.005",
+    "name_en": "potassium alginate"
+  },
+  {
+    "name_zh": "海藻酸钠（又名褐藻酸钠）",
+    "id": "20.004",
+    "name_en": "sodium alginate"
+  },
+  {
+    "name_zh": "核黄素",
+    "id": "08.148",
+    "name_en": "riboflavin"
+  },
+  {
+    "name_zh": "黑豆红",
+    "id": "08.114",
+    "name_en": "black bean red"
+  },
+  {
+    "name_zh": "黑加仑红",
+    "id": "08.122",
+    "name_en": "blackcurrant red"
+  },
+  {
+    "name_zh": "红花黄",
+    "id": "08.103",
+    "name_en": "carthamin yellow"
+  },
+  {
+    "name_zh": "红米红",
+    "id": "08.111",
+    "name_en": "red rice red"
+  },
+  {
+    "name_zh": "红曲黄色素",
+    "id": "08.152",
+    "name_en": "monascus yellow pigment"
+  },
+  {
+    "name_zh": "红曲米、红曲红",
+    "id": "08.119",
+    "name_en": "red kojic rice, monascus red"
+  },
+  {
+    "name_zh": "琥珀酸单甘油酯",
+    "id": "10.038",
+    "name_en": "succinylated monoglycerides"
+  },
+  {
+    "name_zh": "琥珀酸二钠",
+    "id": "12.005",
+    "name_en": "disodium succinate"
+  },
+  {
+    "name_zh": "花生衣红",
+    "id": "08.134",
+    "name_en": "peanut skin red"
+  },
+  {
+    "name_zh": "槐豆胶（又名刺槐豆胶）",
+    "id": "20.023",
+    "name_en": "carob bean gum"
+  },
+  {
+    "name_zh": "黄原胶（又名汉生胶）",
+    "id": "20.009",
+    "name_en": "xanthan gum"
+  },
+  {
+    "name_zh": "己二酸",
+    "id": "01.109",
+    "name_en": "adipic acid"
+  },
+  {
+    "name_zh": "甲基纤维素",
+    "id": "20.043",
+    "name_en": "methyl cellulose"
+  },
+  {
+    "name_zh": "甲壳素（又名几丁质）",
+    "id": "20.018",
+    "name_en": "chitin"
+  },
+  {
+    "name_zh": "姜黄",
+    "id": "08.102",
+    "name_en": "turmeric"
+  },
+  {
+    "name_zh": "姜黄素",
+    "id": "08.132",
+    "name_en": "curcumin"
+  },
+  {
+    "name_zh": "焦糖色（加氨生产）",
+    "id": "08.110",
+    "name_en": "caramel colour class III - ammonia process"
+  },
+  {
+    "name_zh": "焦糖色（苛性硫酸盐法）",
+    "id": "08.151",
+    "name_en": "caramel colour class IV - ammonia sulphite process"
+  },
+  {
+    "name_zh": "焦糖色（普通法）",
+    "id": "08.108",
+    "name_en": "caramel colour class Ⅰ - plain"
+  },
+  {
+    "name_zh": "焦糖色（亚硫酸铵法）",
+    "id": "08.109",
+    "name_en": "caramel colour class IV - ammonia sulphite process"
+  },
+  {
+    "name_zh": "结冷胶",
+    "id": "20.027",
+    "name_en": "gellan gum"
+  },
+  {
+    "name_zh": "金樱子棕",
+    "id": "08.131",
+    "name_en": "rosela evigata michx brown"
+  },
+  {
+    "name_zh": "酒石酸氢钾",
+    "id": "06.007",
+    "name_en": "potassium bitartrate"
+  },
+  {
+    "name_zh": "酒石酸铁",
+    "id": "02.011",
+    "name_en": "iron tartrate"
+  },
+  {
+    "name_zh": "菊花黄浸膏",
+    "id": "08.113",
+    "name_en": "coreopsis yellow"
+  },
+  {
+    "name_zh": "聚丙烯酸钠",
+    "id": "20.036",
+    "name_en": "sodium polyacrylate"
+  },
+  {
+    "name_zh": "聚二甲基硅氧烷及其乳液（包括聚二甲基硅氧烷、聚二甲基硅氧烷乳液）",
+    "id": "03.007",
+    "name_en": "polydimethylsiloxane and emulsion"
+  },
+  {
+    "name_zh": "聚甘油蓖麻醇酸酯（PGPR）",
+    "id": "10.029",
+    "name_en": "polyglycerol polyricinoleate（polyglycerol esters of interesterified ricinoleic acid）"
+  },
+  {
+    "name_zh": "聚甘油脂肪酸酯",
+    "id": "10.022",
+    "name_en": "polyglycerol esters of fatty acids（polyglycerol fatty acid esters）"
+  },
+  {
+    "name_zh": "聚葡萄糖",
+    "id": "20.022",
+    "name_en": "polydextroses"
+  },
+  {
+    "name_zh": "聚天冬氨酸钾",
+    "id": "18.014",
+    "name_en": "potassium polyaspartate"
+  },
+  {
+    "name_zh": "聚乙二醇",
+    "id": "14.012",
+    "name_en": "polyethylene glycol"
+  },
+  {
+    "name_zh": "聚乙烯醇",
+    "id": "14.010",
+    "name_en": "polyvinyl alcohol"
+  },
+  {
+    "name_zh": "决明胶",
+    "id": "20.045",
+    "name_en": "cassia gum"
+  },
+  {
+    "name_zh": "咖啡因",
+    "id": "00.007",
+    "name_en": "caffeine"
+  },
+  {
+    "name_zh": "卡拉胶",
+    "id": "20.007",
+    "name_en": "carrageenan"
+  },
+  {
+    "name_zh": "抗坏血酸（又名维生素 C）",
+    "id": "04.014",
+    "name_en": "ascorbic acid / vitamin C"
+  },
+  {
+    "name_zh": "抗坏血酸钙",
+    "id": "04.009",
+    "name_en": "calcium ascorbate"
+  },
+  {
+    "name_zh": "抗坏血酸钠",
+    "id": "04.015",
+    "name_en": "sodium ascorbate"
+  },
+  {
+    "name_zh": "抗坏血酸棕榈酸酯",
+    "id": "04.011",
+    "name_en": "ascorbyl palmitate"
+  },
+  {
+    "name_zh": "抗坏血酸棕榈酸酯（酶法）",
+    "id": "04.024",
+    "name_en": "ascorbyl palmitate (enzymatic)"
+  },
+  {
+    "name_zh": "可得然胶",
+    "id": "20.042",
+    "name_en": "curdlan"
+  },
+  {
+    "name_zh": "可可壳色",
+    "id": "08.118",
+    "name_en": "cocoa husk pigment"
+  },
+  {
+    "name_zh": "可溶性大豆多糖",
+    "id": "20.044",
+    "name_en": "soluble soybean polysaccharide"
+  },
+  {
+    "name_zh": "喹啉黄及其铝色淀（包括喹啉黄、喹啉黄铝色淀）",
+    "id": "08.016",
+    "name_en": "quinoline yellow, quinoline yellow aluminum lake"
+  },
+  {
+    "name_zh": "辣椒橙",
+    "id": "08.107",
+    "name_en": "paprika orange"
+  },
+  {
+    "name_zh": "辣椒红",
+    "id": "08.106",
+    "name_en": "paprika red"
+  },
+  {
+    "name_zh": "辣椒油树脂",
+    "id": "00.012",
+    "name_en": "paprika oleoresin"
+  },
+  {
+    "name_zh": "蓝锭果红",
+    "id": "08.136",
+    "name_en": "blue honeysuckle red"
+  },
+  {
+    "name_zh": "酪蛋白酸钠（又名酪朊酸钠）",
+    "id": "10.002",
+    "name_en": "sodium caseinate"
+  },
+  {
+    "name_zh": "联苯醚（又名二苯醚）",
+    "id": "17.022",
+    "name_en": "diphenyl ether"
+  },
+  {
+    "name_zh": "亮蓝及其铝色淀（包括亮蓝、亮蓝铝色淀）",
+    "id": "08.007",
+    "name_en": "brilliant blue, brilliant blue aluminum lake"
+  },
+  {
+    "name_zh": "磷酸化二淀粉磷酸酯",
+    "id": "20.017",
+    "name_en": "phosphated distarch phosphate"
+  },
+  {
+    "name_zh": "磷酸及磷酸盐[包括磷酸,焦磷酸二氢二钠,焦磷酸钠,磷酸二氢钙,磷酸二氢钾,磷酸氢二铵,磷酸氢二钾,磷酸氢钙,磷酸三钙,磷酸三钾,磷酸三钠,多聚磷酸钠(包括六偏磷酸钠),三聚磷酸钠,磷酸二氢钠,磷酸氢二钠,焦磷酸四钾,焦磷酸一氢三钠,聚偏磷酸钾,酸式焦磷酸钙]",
+    "id": "01.106",
+    "name_en": "phosphoric acid, disodium dihydrogen diphosphate, tetrasodium pyrophosphate, monocalcium phosphate, monopotassium phosphate, diammonium phosphate, dipotassium phosphate, dicalcium phosphate, tricalcium phosphate, tripotassium phosphate, trisodium phosphate, sodium polyphosphates (including sodium hexametaphosphate), sodium tripolyphosphate, monosodium phosphate, disodium phosphate, tetrapotassium pyrophosphate, trisodium monohydrogen diphosphate, potassium polymetaphosphate, calcium dihydrogen pyrophosphate"
+  },
+  {
+    "name_zh": "磷酸酯双淀粉",
+    "id": "20.034",
+    "name_en": "distarch phosphate"
+  },
+  {
+    "name_zh": "磷脂",
+    "id": "04.010",
+    "name_en": "phospholipid"
+  },
+  {
+    "name_zh": "硫代二丙酸二月桂酯",
+    "id": "04.012",
+    "name_en": "dilaurylthiodipropionate"
+  },
+  {
+    "name_zh": "硫磺",
+    "id": "05.007",
+    "name_en": "sulfur (sulphur)"
+  },
+  {
+    "name_zh": "硫酸钙（又名石膏）",
+    "id": "18.001",
+    "name_en": "calcium sulfate"
+  },
+  {
+    "name_zh": "4-己基间苯二酚",
+    "id": "04.013",
+    "name_en": "4-hexylresorcinol"
+  },
+  {
+    "name_zh": "5'-呈味核苷酸二钠（又名呈味核苷酸二钠）",
+    "id": "12.004",
+    "name_en": "5'-ribonucleotide"
+  },
+  {
+    "name_zh": "5'-肌苷酸二钠",
+    "id": "12.003",
+    "name_en": "5'-inosinic acid"
+  },
+  {
+    "name_zh": "5'-鸟苷酸二钠",
+    "id": "12.002",
+    "name_en": "5'-guanosinic acid"
+  },
+  {
+    "name_zh": "D-甘露糖醇",
+    "id": "19.017",
+    "name_en": "D-mannitol"
+  },
+  {
+    "name_zh": "硫酸铝钾（又名钾明矾）、硫酸铝铵（又名铵明矾）",
+    "id": "06.004",
+    "name_en": "aluminium potassium sulfate, aluminium ammonium sulfate"
+  },
+  {
+    "name_zh": "硫酸镁",
+    "id": "00.021",
+    "name_en": "magnesium sulfate"
+  },
+  {
+    "name_zh": "硫酸锌",
+    "id": "00.018",
+    "name_en": "zinc sulfate"
+  },
+  {
+    "name_zh": "硫酸亚铁",
+    "id": "00.022",
+    "name_en": "ferrous sulfate"
+  },
+  {
+    "name_zh": "罗汉果甜苷",
+    "id": "19.015",
+    "name_en": "lo-han-guo extract"
+  },
+  {
+    "name_zh": "罗望子多糖胶",
+    "id": "20.011",
+    "name_en": "tamarind polysaccharide gum"
+  },
+  {
+    "name_zh": "萝卜红",
+    "id": "08.117",
+    "name_en": "radish red"
+  },
+  {
+    "name_zh": "氯化钙",
+    "id": "18.002",
+    "name_en": "calcium chloride"
+  },
+  {
+    "name_zh": "氯化钾",
+    "id": "00.008",
+    "name_en": "potassium chloride"
+  },
+  {
+    "name_zh": "氯化镁",
+    "id": "18.003",
+    "name_en": "magnesium chloride"
+  },
+  {
+    "name_zh": "吗啉脂肪酸盐果蜡",
+    "id": "14.004",
+    "name_en": "morpholine fatty acid salt (fruit wax)"
+  },
+  {
+    "name_zh": "麦芽糖醇、麦芽糖醇液",
+    "id": "19.005",
+    "name_en": "maltitol and maltitol syrup"
+  },
+  {
+    "name_zh": "没食子酸丙酯（简称\"PG\"）",
+    "id": "04.003",
+    "name_en": "propyl gallate (PG)"
+  },
+  {
+    "name_zh": "玫瑰茄红",
+    "id": "08.125",
+    "name_en": "roselle red"
+  },
+  {
+    "name_zh": "酶解大豆磷脂",
+    "id": "10.040",
+    "name_en": "enzymatically decomposed soybean phospholipid"
+  },
+  {
+    "name_zh": "迷迭香提取物",
+    "id": "04.017",
+    "name_en": "rosemary extract"
+  },
+  {
+    "name_zh": "明胶",
+    "id": "20.002",
+    "name_en": "gelatin"
+  },
+  {
+    "name_zh": "木松香甘油酯",
+    "id": "10.041",
+    "name_en": "glycerol ester of wood rosin"
+  },
+  {
+    "name_zh": "木糖醇",
+    "id": "19.007",
+    "name_en": "xylitol"
+  },
+  {
+    "name_zh": "木糖醇酐单硬脂酸酯",
+    "id": "10.007",
+    "name_en": "xylitan monostearate"
+  },
+  {
+    "name_zh": "纳他霉素",
+    "id": "17.030",
+    "name_en": "natamycin"
+  },
+  {
+    "name_zh": "柠檬黄及其铝色淀（包括柠檬黄、柠檬黄铝色淀）",
+    "id": "08.005",
+    "name_en": "lemon yellow, lemon yellow aluminum lake"
+  },
+  {
+    "name_zh": "柠檬酸",
+    "id": "01.101",
+    "name_en": "citric acid"
+  },
+  {
+    "name_zh": "柠檬酸钾",
+    "id": "01.304",
+    "name_en": "tripotassium citrate"
+  },
+  {
+    "name_zh": "柠檬酸钠",
+    "id": "01.303",
+    "name_en": "trisodium citrate"
+  },
+  {
+    "name_zh": "柠檬酸铁铵",
+    "id": "02.010",
+    "name_en": "ferric ammonium citrate"
+  },
+  {
+    "name_zh": "柠檬酸亚锡二钠",
+    "id": "18.006",
+    "name_en": "disodium stannous citrate"
+  },
+  {
+    "name_zh": "D-异抗坏血酸及其钠盐(包括 D-异抗坏血酸,D-异抗坏血酸钠)",
+    "id": "04.004",
+    "name_en": "D-isoascorbic acid (erythorbic acid), sodium D-isoascorbate"
+  },
+  {
+    "name_zh": "DL-苹果酸",
+    "id": "01.309",
+    "name_en": "DL-malic acid"
+  },
+  {
+    "name_zh": "DL-苹果酸钠",
+    "id": "01.314",
+    "name_en": "sodium DL-malate"
+  },
+  {
+    "name_zh": "L-半胱氨酸盐酸盐",
+    "id": "13.003",
+    "name_en": "L-cysteine hydrochlorides sodium and potassium salts"
+  },
+  {
+    "name_zh": "L-丙氨酸",
+    "id": "12.006",
+    "name_en": "L-alanine"
+  },
+  {
+    "name_zh": "柠檬酸一钠",
+    "id": "01.306",
+    "name_en": "sodium dihydrogen citrate"
+  },
+  {
+    "name_zh": "柠檬酸脂肪酸甘油酯",
+    "id": "10.032",
+    "name_en": "citric and fatty acid esters of glycerol"
+  },
+  {
+    "name_zh": "纽甜（又名 N-[N-(3,3-二甲基丁基)]-L-α-天门冬氨-L-苯丙氨酸1-甲酯）",
+    "id": "19.019",
+    "name_en": "neotame"
+  },
+  {
+    "name_zh": "偏酒石酸",
+    "id": "01.105",
+    "name_en": "metatartaric acid"
+  },
+  {
+    "name_zh": "葡萄皮红",
+    "id": "08.135",
+    "name_en": "grape skin extract"
+  },
+  {
+    "name_zh": "葡萄糖酸-δ-内酯",
+    "id": "18.007",
+    "name_en": "glucono-delta-lactone"
+  },
+  {
+    "name_zh": "葡萄糖酸钠",
+    "id": "01.312",
+    "name_en": "sodium gluconate"
+  },
+  {
+    "name_zh": "葡萄糖酸亚铁",
+    "id": "09.005",
+    "name_en": "ferrous gluconate"
+  },
+  {
+    "name_zh": "普鲁兰多糖",
+    "id": "14.011",
+    "name_en": "pullulan"
+  },
+  {
+    "name_zh": "羟丙基淀粉",
+    "id": "20.014",
+    "name_en": "hydroxypropyl starch"
+  },
+  {
+    "name_zh": "羟丙基二淀粉磷酸酯",
+    "id": "20.016",
+    "name_en": "hydroxypropyldistarch phosphate"
+  },
+  {
+    "name_zh": "羟丙基甲基纤维素（HPMC）",
+    "id": "20.028",
+    "name_en": "hydroxypropylmethylcellulose"
+  },
+  {
+    "name_zh": "羟基硬脂精（又名氧化硬脂精）",
+    "id": "00.017",
+    "name_en": "oxystearin"
+  },
+  {
+    "name_zh": "氢化松香甘油酯",
+    "id": "10.013",
+    "name_en": "glycerol ester of hydrogenated rosin"
+  },
+  {
+    "name_zh": "氢氧化钙",
+    "id": "01.202",
+    "name_en": "calcium hydroxide"
+  },
+  {
+    "name_zh": "氢氧化钾",
+    "id": "01.203",
+    "name_en": "potassium hydroxide"
+  },
+  {
+    "name_zh": "琼脂",
+    "id": "20.001",
+    "name_en": "agar"
+  },
+  {
+    "name_zh": "日落黄及其铝色淀（包括日落黄、日落黄铝色淀）",
+    "id": "08.006",
+    "name_en": "sunset yellow, sunset yellow aluminum lake"
+  },
+  {
+    "name_zh": "溶菌酶",
+    "id": "17.035",
+    "name_en": "lysozyme"
+  },
+  {
+    "name_zh": "肉桂醛",
+    "id": "17.012",
+    "name_en": "cinnamaldehyde"
+  },
+  {
+    "name_zh": "乳酸",
+    "id": "01.102",
+    "name_en": "lactic acid"
+  },
+  {
+    "name_zh": "乳酸钙",
+    "id": "01.310",
+    "name_en": "calcium lactate"
+  },
+  {
+    "name_zh": "乳酸钾",
+    "id": "15.011",
+    "name_en": "potassium lactate"
+  },
+  {
+    "name_zh": "乳酸链球菌素",
+    "id": "17.019",
+    "name_en": "nisin"
+  },
+  {
+    "name_zh": "乳酸钠",
+    "id": "15.012",
+    "name_en": "sodium lactate"
+  }
+]

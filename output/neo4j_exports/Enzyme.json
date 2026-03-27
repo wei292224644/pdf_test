@@ -1,0 +1,398 @@
+[
+  {
+    "name_zh": "D-阿洛酮糖-3-差向异构酶",
+    "code": "ENZ001",
+    "sequence_no": 1,
+    "name_en": "D-psicose 3-epimerase"
+  },
+  {
+    "name_zh": "α-半乳糖苷酶",
+    "code": "ENZ002",
+    "sequence_no": 2,
+    "name_en": "Alpha-galactosidase"
+  },
+  {
+    "name_zh": "α-淀粉酶",
+    "code": "ENZ003",
+    "sequence_no": 3,
+    "name_en": "Alpha-amylase"
+  },
+  {
+    "name_zh": "α-乙酰乳酸脱羧酶",
+    "code": "ENZ004",
+    "sequence_no": 4,
+    "name_en": "Alpha-acetolactate decarboxylase"
+  },
+  {
+    "name_zh": "β-淀粉酶",
+    "code": "ENZ005",
+    "sequence_no": 5,
+    "name_en": "Beta-amylase"
+  },
+  {
+    "name_zh": "β-果糖基转移酶",
+    "code": "ENZ006",
+    "sequence_no": 6,
+    "name_en": "Beta-fructofuranosidase"
+  },
+  {
+    "name_zh": "β-葡聚糖酶",
+    "code": "ENZ007",
+    "sequence_no": 7,
+    "name_en": "Beta-glucanase"
+  },
+  {
+    "name_zh": "阿拉伯呋喃糖苷酶",
+    "code": "ENZ008",
+    "sequence_no": 8,
+    "name_en": "Arabinofuranosidase"
+  },
+  {
+    "name_zh": "氨基肽酶",
+    "code": "ENZ009",
+    "sequence_no": 9,
+    "name_en": "Aminopeptidase"
+  },
+  {
+    "name_zh": "半纤维素酶",
+    "code": "ENZ010",
+    "sequence_no": 10,
+    "name_en": "Hemicellulase"
+  },
+  {
+    "name_zh": "菠萝蛋白酶",
+    "code": "ENZ011",
+    "sequence_no": 11,
+    "name_en": "Bromelain"
+  },
+  {
+    "name_zh": "蛋白酶（包括乳凝块酶）",
+    "code": "ENZ012",
+    "sequence_no": 12,
+    "name_en": "Protease"
+  },
+  {
+    "name_zh": "蛋白质谷氨酰胺酶",
+    "code": "ENZ013",
+    "sequence_no": 13,
+    "name_en": "Protein-glutaminase"
+  },
+  {
+    "name_zh": "单宁酶",
+    "code": "ENZ014",
+    "sequence_no": 14,
+    "name_en": "Tannase"
+  },
+  {
+    "name_zh": "多聚半乳糖醛酸酶",
+    "code": "ENZ015",
+    "sequence_no": 15,
+    "name_en": "Polygalacturonase"
+  },
+  {
+    "name_zh": "甘油磷脂胆固醇酰基转移酶",
+    "code": "ENZ016",
+    "sequence_no": 16,
+    "name_en": "Glycerophospholipid Cholesterol Acyltransferase, GCAT"
+  },
+  {
+    "name_zh": "谷氨酰胺酶",
+    "code": "ENZ017",
+    "sequence_no": 17,
+    "name_en": "Glutaminase"
+  },
+  {
+    "name_zh": "谷氨酰胺转氨酶",
+    "code": "ENZ018",
+    "sequence_no": 18,
+    "name_en": "Glutamine Transaminase"
+  },
+  {
+    "name_zh": "果胶裂解酶",
+    "code": "ENZ019",
+    "sequence_no": 19,
+    "name_en": "Pectinlyase"
+  },
+  {
+    "name_zh": "果胶酶",
+    "code": "ENZ020",
+    "sequence_no": 20,
+    "name_en": "Pectinase"
+  },
+  {
+    "name_zh": "果胶酯酶（果胶甲基酯酶）",
+    "code": "ENZ021",
+    "sequence_no": 21,
+    "name_en": "Pectinesterase / Pectin methylesterase"
+  },
+  {
+    "name_zh": "过氧化氢酶",
+    "code": "ENZ022",
+    "sequence_no": 22,
+    "name_en": "Catalase"
+  },
+  {
+    "name_zh": "核酸酶",
+    "code": "ENZ023",
+    "sequence_no": 23,
+    "name_en": "Nuclease"
+  },
+  {
+    "name_zh": "海藻糖酶",
+    "code": "ENZ024",
+    "sequence_no": 24,
+    "name_en": "Trehalase"
+  },
+  {
+    "name_zh": "环糊精葡萄糖苷转移酶",
+    "code": "ENZ025",
+    "sequence_no": 25,
+    "name_en": "Cyclomaltodextrin glucanotransferase"
+  },
+  {
+    "name_zh": "己糖氧化酶",
+    "code": "ENZ026",
+    "sequence_no": 26,
+    "name_en": "Hexose oxidase"
+  },
+  {
+    "name_zh": "菊糖酶",
+    "code": "ENZ027",
+    "sequence_no": 27,
+    "name_en": "Inulinase"
+  },
+  {
+    "name_zh": "壳聚糖酶",
+    "code": "ENZ028",
+    "sequence_no": 28,
+    "name_en": "Chitosanase"
+  },
+  {
+    "name_zh": "磷脂酶",
+    "code": "ENZ029",
+    "sequence_no": 29,
+    "name_en": "Phospholipase"
+  },
+  {
+    "name_zh": "磷脂酶 A1",
+    "code": "ENZ030",
+    "sequence_no": 30,
+    "name_en": "Phospholipase A1"
+  },
+  {
+    "name_zh": "磷脂酶 A2",
+    "code": "ENZ031",
+    "sequence_no": 31,
+    "name_en": "Phospholipase A2"
+  },
+  {
+    "name_zh": "磷脂酶 C",
+    "code": "ENZ032",
+    "sequence_no": 32,
+    "name_en": "Phospholipase C"
+  },
+  {
+    "name_zh": "磷酸肌醇磷脂酶 C",
+    "code": "ENZ033",
+    "sequence_no": 33,
+    "name_en": "Phosphoinositide phospholipase C"
+  },
+  {
+    "name_zh": "麦芽碳水化合物水解酶（α-、β-淀粉酶）",
+    "code": "ENZ034",
+    "sequence_no": 34,
+    "name_en": "Malt carbohydrates"
+  },
+  {
+    "name_zh": "麦芽糖淀粉酶",
+    "code": "ENZ035",
+    "sequence_no": 35,
+    "name_en": "Maltogenic amylase"
+  },
+  {
+    "name_zh": "麦芽四糖水解酶",
+    "code": "ENZ036",
+    "sequence_no": 36,
+    "name_en": "Maltotetraohydrolase"
+  },
+  {
+    "name_zh": "木瓜蛋白酶",
+    "code": "ENZ037",
+    "sequence_no": 37,
+    "name_en": "Papain"
+  },
+  {
+    "name_zh": "木聚糖酶",
+    "code": "ENZ038",
+    "sequence_no": 38,
+    "name_en": "Xylanase"
+  },
+  {
+    "name_zh": "凝乳酶A",
+    "code": "ENZ039",
+    "sequence_no": 39,
+    "name_en": "Chymosin A"
+  },
+  {
+    "name_zh": "凝乳酶B",
+    "code": "ENZ040",
+    "sequence_no": 40,
+    "name_en": "Chymosin B"
+  },
+  {
+    "name_zh": "凝乳酶或粗制凝乳酶",
+    "code": "ENZ041",
+    "sequence_no": 41,
+    "name_en": "Chymosin or Rennet"
+  },
+  {
+    "name_zh": "葡糖淀粉酶（淀粉葡糖苷酶）",
+    "code": "ENZ042",
+    "sequence_no": 42,
+    "name_en": "Glucoamylase, amyloglucosidase"
+  },
+  {
+    "name_zh": "葡糖氧化酶",
+    "code": "ENZ043",
+    "sequence_no": 43,
+    "name_en": "Glucose oxidase"
+  },
+  {
+    "name_zh": "葡糖异构酶（木糖异构酶）",
+    "code": "ENZ044",
+    "sequence_no": 44,
+    "name_en": "Glucose isomerase"
+  },
+  {
+    "name_zh": "β-葡萄糖苷酶（beta-glucosidase（又名纤维二糖酶 Cellobiase））",
+    "code": "ENZ045",
+    "sequence_no": 45,
+    "name_en": ""
+  },
+  {
+    "name_zh": "α-葡萄糖苷酶",
+    "code": "ENZ046",
+    "sequence_no": 46,
+    "name_en": "Alpha-glucosidase"
+  },
+  {
+    "name_zh": "普鲁兰酶",
+    "code": "ENZ047",
+    "sequence_no": 47,
+    "name_en": "Pullulanase"
+  },
+  {
+    "name_zh": "漆酶",
+    "code": "ENZ048",
+    "sequence_no": 48,
+    "name_en": "Laccase"
+  },
+  {
+    "name_zh": "溶血磷脂酶（磷脂酶B）",
+    "code": "ENZ049",
+    "sequence_no": 49,
+    "name_en": "Lysophospholipase / lecithinase B"
+  },
+  {
+    "name_zh": "乳糖酶（β-半乳糖苷酶）",
+    "code": "ENZ050",
+    "sequence_no": 50,
+    "name_en": "Lactase / beta-galactosidase"
+  },
+  {
+    "name_zh": "羧肽酶",
+    "code": "ENZ051",
+    "sequence_no": 51,
+    "name_en": "Carboxypeptidase"
+  },
+  {
+    "name_zh": "4-α-糖基转移酶",
+    "code": "ENZ052",
+    "sequence_no": 52,
+    "name_en": "4-alpha-glucanotransferase"
+  },
+  {
+    "name_zh": "天门冬酰胺酶",
+    "code": "ENZ053",
+    "sequence_no": 53,
+    "name_en": "Asparaginase"
+  },
+  {
+    "name_zh": "脱氨酶",
+    "code": "ENZ054",
+    "sequence_no": 54,
+    "name_en": "Deaminase"
+  },
+  {
+    "name_zh": "胃蛋白酶",
+    "code": "ENZ055",
+    "sequence_no": 55,
+    "name_en": "Pepsin"
+  },
+  {
+    "name_zh": "无花果蛋白酶",
+    "code": "ENZ056",
+    "sequence_no": 56,
+    "name_en": "Ficin"
+  },
+  {
+    "name_zh": "纤维素酶",
+    "code": "ENZ057",
+    "sequence_no": 57,
+    "name_en": "Cellulase"
+  },
+  {
+    "name_zh": "右旋糖酐酶",
+    "code": "ENZ058",
+    "sequence_no": 58,
+    "name_en": "Dextranase"
+  },
+  {
+    "name_zh": "胰蛋白酶",
+    "code": "ENZ059",
+    "sequence_no": 59,
+    "name_en": "Trypsin"
+  },
+  {
+    "name_zh": "胰凝乳蛋白酶（糜蛋白酶）",
+    "code": "ENZ060",
+    "sequence_no": 60,
+    "name_en": "Chymotrypsin"
+  },
+  {
+    "name_zh": "蔗糖 1-果糖转移酶（又名果糖基转移酶）",
+    "code": "ENZ061",
+    "sequence_no": 61,
+    "name_en": "Sucrose 1-fructosyltransferase"
+  },
+  {
+    "name_zh": "脂肪酶",
+    "code": "ENZ062",
+    "sequence_no": 62,
+    "name_en": "Lipase"
+  },
+  {
+    "name_zh": "酯酶",
+    "code": "ENZ063",
+    "sequence_no": 63,
+    "name_en": "Esterase"
+  },
+  {
+    "name_zh": "植酸酶",
+    "code": "ENZ064",
+    "sequence_no": 64,
+    "name_en": "Phytase"
+  },
+  {
+    "name_zh": "转化酶（蔗糖酶）",
+    "code": "ENZ065",
+    "sequence_no": 65,
+    "name_en": "Invertase / Saccharase"
+  },
+  {
+    "name_zh": "转葡糖苷酶",
+    "code": "ENZ066",
+    "sequence_no": 66,
+    "name_en": "Transglucosidase"
+  }
+]
