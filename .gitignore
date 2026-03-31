@@ -10,6 +10,7 @@ ENV/
 env/
 
 .env*
+.env
 
 # IDE
 .vscode/
@@ -43,3 +44,5 @@ lightrag_storage/
 
 # 构建进度
 .schema_build_progress
+
+.DS_Store
